@@ -1,25 +1,32 @@
-A purely dynamic version of the label tracking for scala.
+Label tracking and label-based policy enforcement demo for the origin
+privacy project.
 
-Tracks labels to sinks, enforcing policies relating which labels can
-flow into which sinks. The system makes use of two core elements: data
-labels (of type Label), and computation labels (monads of type LIO).
-Protected data is tracked along with its label while computations that
-make use of labeled data work in the LIO context.
+# Basic types, as defined for the demo in DemoTypes.
+
+* L - label that tracks purpose, and three types of origin: person, location, time.
+* Ld[T] - labeled data of type T
+* LIO[T] - a label-manipulating computation that returns T
+
+
+# Policies
+
+'''
+  val publicRooms: DemoLabel =
+    new DemoLabel(location = CoreTypes.Location("100"))
+
+  val allowPublicRooms = (new Legalese()
+    allow ⊑(publicRooms)
+  )
+
+  val allowLocationForHVAC = (new Legalese()
+    allow ⊑(purpose = Purpose.climate_control)
+    except ⊐(person = Origin.Person.bot)
+  )
+'''
 
 # Labeling data
 
-val secret_labeler: LIO[Labeled[String]] =
-  "attack at dawn".label(HiLow.Hi, secret)
-
-val secret_labeled: Labeled[String] =
-   secret_labeler.evalLIO(LIO.initialState())
-
 # Using labeled data
-
-val user: LIO[Unit] = new LIO { s =>
-           
-  }         
-}
 
 # Data egress
 
