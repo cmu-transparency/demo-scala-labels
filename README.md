@@ -7,10 +7,9 @@ privacy project.
 * Ld[T] - labeled data of type T
 * LIO[T] - a label-manipulating computation that returns T
 
-
 # Policies
 
-'''
+```
   val publicRooms: DemoLabel =
     new DemoLabel(location = CoreTypes.Location("100"))
 
@@ -22,13 +21,4 @@ privacy project.
     allow ⊑(purpose = Purpose.climate_control)
     except ⊐(person = Origin.Person.bot)
   )
-'''
-
-# Labeling data
-
-# Using labeled data
-
-# Data egress
-
-# Policies
-
+```
