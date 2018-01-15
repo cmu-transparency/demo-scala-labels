@@ -1,0 +1,80 @@
+package edu.cmu.spf.lio.demo
+
+//import java.time.Instant
+import java.sql.Timestamp
+
+import edu.cmu.spf.lio._
+
+object CoreTypes {
+
+  object Implicits {
+    implicit def <(t1: Timestamp, t2: Timestamp): Boolean = t1.compareTo(t2) < 0
+
+    implicit def toTimestamp(t: Time): Timestamp = t.i
+    implicit def toTime(i: Timestamp): Time = Time(i)
+
+//    implicit def toLong(t: Time): Long = 0
+//    implicit def toTime(t: Long): Time = Time(Instant.now())
+  }
+
+  implicit class Time(val i: Timestamp) {
+    def <(that: Time): Boolean = this.i.compareTo(that.i) < 0
+    def <=(that: Time): Boolean = this.i.compareTo(that.i) <= 0
+    def min(that: Time): Time = if (this <= that) this else that
+    def max(that: Time): Time = if (this <= that) that else this
+  }
+
+  /*
+  abstract class Time(val when: Timestamp) extends Label[Time] {
+    // FIXME: Use standard Java Time class
+
+    def compare(that: Time): Int = {
+      this.when.compare(that.when)
+    }
+    // FIXME: Are min and max defined somewhere in the standard library?
+    def min(that: Time): Time = {
+      if (this.when <= that.when) this else that
+    }
+
+    def max(that: Time): Time = {
+      if (this.when <= that.when) that else this
+    }
+  }
+   */
+
+  case class Purpose(val name: String)
+  case class Location(val name: String)
+  case class Person(val device_id: Int, val name: String)
+  case class Sensor(val sensor_id: Int, val location: Location)
+}
+
+import CoreTypes._
+import edu.cmu.spf.lio._
+
+import cats.Monad
+
+object DemoTypes {
+  type L = DemoLabel.T
+  type Ld[T] = Labeled[L, T]
+  type LIO[T] = Core.LIO[L, T]
+  type State = Core.State[L]
+
+//  implicit def liom[T](lio: LIO[T]): Monad[LIO] = new Monad {
+
+//  }
+
+  sealed abstract class Purpose
+  case object Policing extends Purpose
+  case object Auditing extends Purpose
+  case object ClimateControl extends Purpose
+
+  /*
+    type PersonInfoRow = (DeviceId, Labeled[Person, Origin.Person])
+   */
+
+    type LocalizedRow = (
+      Person,
+      Time,
+      Location
+    ) // labeled will by applied to the whole thing
+  }
