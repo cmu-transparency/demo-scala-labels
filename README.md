@@ -15,7 +15,7 @@ in standard Scala itself.
 Labels serve as the basis of the enforcement system. Labels are
 special bits of data attached to standard values (and computations)
 and accompany them throughout the execution of a program. A string
-labeled with label type L, is given a type ```Labeled[L, String]```.
+labeled with label type L, is given a type ```scala Labeled[L, String]```.
 
 ```scala
   val secret: Labeled[L, String] = ???
@@ -25,9 +25,9 @@ A value that has been labeled can only be inspected in the context of
 a label-aware computation modeled as a monad named here LIO. Though
 the shallow embedding of labeled programming requires special effort
 on behalf of the programmer, Scala does provide some convenient syntax
-for working with monadic computations such as the ```for``` notation.
+for working with monadic computations such as the ```scala for``` notation.
 
-```
+```scala
    val ready: LIO[L, Boolean] = for {
       actual_secret <- unlabel secret
    } yield (actual_secret == "attack at dawn")
@@ -39,7 +39,7 @@ important to remember that defining such computations does not execute
 them. Executing a label manipulating computation is performed using a
 special method of the LIO monad.
 
-```
+```scala
    val actually_ready: Boolean = ready.TCBeval(...)
 ```
 
@@ -73,7 +73,7 @@ designed to represent moments of time. The model in the demo is able
 to represent single time instances, all time instances between two
 moments, all instances, and no instances:
 
-```
+```scala
   sealed abstract class Time extends Label {
     def join(b: That): Time = ...
     def meet(b: That): Time = ...
@@ -97,7 +97,7 @@ Labels also come with an ordering operations ⊑ that determines whether
 instances represented on the left are wholly covered by instances
 represented on the right.
 
-```
+```scala
   def ⊑(a: Label, b: Label): Boolean = a ⊔ b == b
   def ⊒(a: Label, b: Label): Boolean = a ⨅ b == b
 
@@ -111,13 +111,13 @@ labels that arise inside of label-manipulating computations.
 
 ## Basic types, as defined for the demo in DemoTypes.
 
-* Label - label that tracks purpose, and three types of origin: person, location, time.
-* Labeled[L, T] - labeled data of type T
-* LIO[L, T] - a label-manipulating computation that returns T
+* ```scala Label``` - label that tracks purpose, and three types of origin: person, location, time.
+* ```scala Labeled[L, T]``` - labeled data of type T
+* ```scala LIO[L, T]``` - a label-manipulating computation that returns T
 
 ## Policies
 
-```
+```scala
   val publicRooms: DemoLabel =
     new DemoLabel(location = Location("100"))
 
