@@ -15,17 +15,17 @@ in standard Scala itself.
 Labels serve as the basis of the enforcement system. Labels are
 special bits of data attached to standard values (and computations)
 and accompany them throughout the execution of a program. A string
-labeled with label type L, is given a type ```scala Labeled[L, String]```.
+labeled with label type `L`, is given a type `Labeled[L, String]`.
 
 ```scala
   val secret: Labeled[L, String] = ???
 ```
 
 A value that has been labeled can only be inspected in the context of
-a label-aware computation modeled as a monad named here LIO. Though
+a label-aware computation modeled as a monad named here `LIO`. Though
 the shallow embedding of labeled programming requires special effort
 on behalf of the programmer, Scala does provide some convenient syntax
-for working with monadic computations such as the ```scala for``` notation.
+for working with monadic computations such as the `for` notation.
 
 ```scala
    val ready: LIO[L, Boolean] = for {
@@ -37,13 +37,13 @@ The above example is a label-manipulating computation that inspects a
 labeled string to check whether it is equal to "attack at dawn". It is
 important to remember that defining such computations does not execute
 them. Executing a label manipulating computation is performed using a
-special method of the LIO monad.
+special method of the `LIO` monad.
 
 ```scala
    val actually_ready: Boolean = ready.TCBeval(...)
 ```
 
-Methods such as TCBeval and others starting with TCB refer to trusted
+Methods such as `TCBeval` and others starting with TCB refer to trusted
 invocations to be restricted to a trusted computing base (TCB). These
 methods must be used correctly in order to provide the protections of
 this system. The arguments to TCBeval include a policy to be
@@ -111,9 +111,12 @@ labels that arise inside of label-manipulating computations.
 
 ## Basic types, as defined for the demo in DemoTypes.
 
-* ```scala Label``` - label that tracks purpose, and three types of origin: person, location, time.
-* ```scala Labeled[L, T]``` - labeled data of type T
-* ```scala LIO[L, T]``` - a label-manipulating computation that returns T
+* `Label` - label that tracks purpose, and three types of origin:
+  person, location, time.
+
+* `Labeled[L, T]` - labeled data of type `T`
+
+* `LIO[L, T]` - a label-manipulating computation that returns `T`
 
 ## Policies
 
