@@ -7,7 +7,6 @@ import cats.kernel.Eq
 // https://github.com/typelevel/algebra/blob/master/core/src/main/scala/algebra/lattice/JoinSemilattice.scala
 
 trait Lattice[T] extends Serializable {
-
   def top: T
   def bot: T
   def isTop(l: T)(implicit ev: Eq[T]): Boolean = ev.eqv(l, top)
@@ -15,20 +14,6 @@ trait Lattice[T] extends Serializable {
   def join(l1: T, l2: T): T
   def meet(l1: T, l2: T): T
 }
-
-/*
-trait LatticeFunctions[L[T] <: Lattice[T]] {
-  def top[T](implicit ev: L[T]): T = ev.top
-  def bot[T](implicit ev: L[T]): T = ev.bot
-
-  def join[T](l1: T, l2: T)(implicit ev: L[T]): T = ev.join(l1, l2)
-  def meet[T](l1: T, l2: T)(implicit ev: L[T]): T = ev.meet(l1, l2)
-}
-
-object Lattice extends LatticeFunctions[Lattice] {
-  def apply[T](implicit ev: Lattice[T]): Lattice[T] = ev
-}
- */
 
 trait LatticeElement[T] extends PartiallyOrdered[T] { self: T =>
   def join(that: T): T
@@ -40,15 +25,11 @@ trait LatticeElement[T] extends PartiallyOrdered[T] { self: T =>
   def tryCompareTo[S >: T]
   (that: S)
   (implicit evidence: S => PartiallyOrdered[S]): Option[Int] = {
-    val ret = //_that match {
-      //case that =>
+    val ret =
         if (self == that) { Some(0) }
         else if (self == self.join(that.asInstanceOf[T])) { Some(1) }
         else if (self == self.meet(that.asInstanceOf[T])) { Some(-1) }
         else { None }
-   //   case _ => None
-//    }
-//    println("tryCompareTo(" + this.toString + ", " + that.toString + ") = " + ret.toString)
     ret
   }
 }
@@ -79,9 +60,6 @@ object BoundedLabel {
   def apply[L <: Label[L]](l: L): BoundedLabel[L] =
     new BoundedLabel[L](l, l)
 }
-
-//abstract class BoundedLabelLattice[T] extends Lattice[T] {
-//}
 
 class LabelTuple2[A <: Label[A], B <: Label[B]](val a: A, val b: B)
     extends Tuple2[A,B](a,b) with Label[LabelTuple2[A,B]] {
@@ -139,22 +117,7 @@ trait LabelTuple4Functions[
 
 class LabelTuple4[A <: Label[A], B <: Label[B], C <: Label[C], D <: Label[D]]
   (val a: A, val b: B, val c: C, val d: D)
-    extends Tuple4[A,B,C,D](a,b,c,d) {// with Label[LabelTuple4[A,B,C,D]] {
-
-  /*
-  def join(that: LabelTuple4[A,B,C,D]) = new LabelTuple4(
-    this.a.join(that.a),
-    this.b.join(that.b),
-    this.c.join(that.c),
-    this.d.join(that.d)
-  )
-
-  def meet(that: LabelTuple4[A,B,C,D]) = new LabelTuple4(
-    this.a.meet(that.a),
-    this.b.meet(that.b),
-    this.c.meet(that.c),
-    this.d.meet(that.d)
-  )*/
+    extends Tuple4[A,B,C,D](a,b,c,d) {
 }
 
 trait DefaultTop[T] { self: T =>
