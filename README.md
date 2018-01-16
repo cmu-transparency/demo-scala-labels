@@ -17,7 +17,7 @@ special bits of data attached to standard values (and computations)
 and accompany them throughout the execution of a program. A string
 labeled with label type L, is given a type ```Labeled[L, String]```.
 
-```
+```scala
   val secret: Labeled[L, String] = ???
 ```
 
@@ -54,6 +54,16 @@ relevant to an intended policy. The demonstration here includes labels
 to represent information about purpose and several origin annotations
 including person, location, and time.
 
+```scala
+   abstract class Purpose extends Label ...
+   
+   abstract class Origin extends Label ...
+   
+   abstract class Person extends Origin ...
+   abstract class Location extends Origin ...
+   abstract class Time extends Origin ...
+```
+
 All labels in this system are approximations of sets of concrete
 values modeled as lattices with least upper bound (join or ⊔) and
 greatest lower bound (meet or ⨅) operations as well as special top (⊤)
@@ -64,7 +74,10 @@ to represent single time instances, all time instances between two
 moments, all instances, and no instances:
 
 ```
-  sealed abstract class Time extends Label ...
+  sealed abstract class Time extends Label {
+    def join(b: That): Time = ...
+    def meet(b: That): Time = ...
+  }
 
   case class AtTime(t: Timestamp) extends Time ...
   case class Between(after: Timestamp, before: Timestamp) extends Time ...
@@ -80,17 +93,33 @@ represent at least all of the instances represented by both inputs.
 The meet operation under-approximates two labels into one that
 represents at most instances represented by both input labels.
 
+Labels also come with an ordering operations ⊑ that determines whether
+instances represented on the left are wholly covered by instances
+represented on the right.
+
+```
+  def ⊑(a: Label, b: Label): Boolean = a ⊔ b == b
+  def ⊒(a: Label, b: Label): Boolean = a ⨅ b == b
+
+  def ⊏(a: Label, b: Label): Boolean = a ⊑ b && a != b
+  def ⊐(a: Label, b: Label): Boolean = a ⊒ b && a != b
+```
+
+This and related ordering operations are the basis of policy
+specification. Policy restrict the labels or rather the order of
+labels that arise inside of label-manipulating computations.
+
 ## Basic types, as defined for the demo in DemoTypes.
 
-* L - label that tracks purpose, and three types of origin: person, location, time.
-* Ld[T] - labeled data of type T
-* LIO[T] - a label-manipulating computation that returns T
+* Label - label that tracks purpose, and three types of origin: person, location, time.
+* Labeled[L, T] - labeled data of type T
+* LIO[L, T] - a label-manipulating computation that returns T
 
 ## Policies
 
 ```
   val publicRooms: DemoLabel =
-    new DemoLabel(location = CoreTypes.Location("100"))
+    new DemoLabel(location = Location("100"))
 
   val allowPublicRooms = (new Legalese()
     allow ⊑(publicRooms)
