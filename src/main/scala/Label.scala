@@ -61,6 +61,40 @@ object BoundedLabel {
     new BoundedLabel[L](l, l)
 }
 
+sealed abstract class LBoolean extends Label[LBoolean]
+case class LTrueAndFalse() extends LBoolean() with DefaultTop[LBoolean]
+case class LTrue() extends LBoolean() {
+  def join(that: LBoolean) = that match {
+    case LTrue()
+       | LNeitherTrueNorFalse() => LTrue()
+    case LFalse()
+       | LTrueAndFalse() => LTrueAndFalse()
+  }
+
+  def meet(that: LBoolean) = that match {
+    case LTrue()
+       | LTrueAndFalse() => LTrue()
+    case LFalse()
+       | LNeitherTrueNorFalse() => LNeitherTrueNorFalse()
+  }
+}
+case class LFalse() extends LBoolean() {
+  def join(that: LBoolean) = that match {
+    case LFalse()
+       | LNeitherTrueNorFalse() => LFalse()
+    case LTrue()
+       | LTrueAndFalse() => LTrueAndFalse()
+  }
+
+  def meet(that: LBoolean) = that match {
+    case LFalse()
+       | LTrueAndFalse() => LFalse()
+    case LTrue()
+       | LNeitherTrueNorFalse() => LNeitherTrueNorFalse()
+  }
+}
+case class LNeitherTrueNorFalse() extends LBoolean() with DefaultBottom[LBoolean]
+
 class LabelTuple2[A <: Label[A], B <: Label[B]](val a: A, val b: B)
     extends Tuple2[A,B](a,b) with Label[LabelTuple2[A,B]] {
 

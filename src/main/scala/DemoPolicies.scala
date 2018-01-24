@@ -8,6 +8,30 @@ object DemoPolicy {
   type L = DemoLabel.T
   type T = Policy[L]
 
+  implicit class LabelCompare[L <: Label[L]](select: Selector[L]) {
+    def ⊑(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
+      def apply(dl: DemoLabel): Boolean = select(dl) <= l
+    }
+    def ⊏(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
+      def apply(dl: DemoLabel): Boolean = select(dl) < l
+    }
+    def ⊒(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
+      def apply(dl: DemoLabel): Boolean = select(dl) >= l
+    }
+    def ⊐(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
+      def apply(dl: DemoLabel): Boolean = select(dl) > l
+    }
+
+    def ≤(l: L): Policy[DemoLabel] = ⊑(l)
+    def <=(l: L): Policy[DemoLabel] = ⊑(l)
+    def <(l: L): Policy[DemoLabel] = ⊏(l)
+    def ≥(l: L): Policy[DemoLabel] = ⊒(l)
+    def >=(l: L): Policy[DemoLabel] = ⊒(l)
+    def >(l: L): Policy[DemoLabel] = ⊐(l)
+
+
+  }
+/*
   implicit def ⊑(dl: DemoLabel) = LabelLeq(dl)
   implicit def ⊒(dl: DemoLabel) = LabelGeq(dl)
 
@@ -54,6 +78,7 @@ object DemoPolicy {
   case class LabelGt[L <: Label[L]](l1: L) extends Policy[L] {
     def apply(l2: L): Boolean = l1 > l2
   }
+ */
 
 /* Positive norms and negative norms. Policy[L] applies if one of the
  * positive norms is satisfied, and none of the negative ones is. */
@@ -87,24 +112,15 @@ object Examples {
   import DemoPolicy._
   import DemoLabel.Implicits._
 
-  val publicRooms: DemoLabel =
-    new DemoLabel(location = CoreTypes.Location("100"))
+  val publicRooms: Origin.Location =
+    CoreTypes.Location("100")
 
   val allowPublicRooms = (new Legalese()
-    allow ⊑(publicRooms)
+    allow(Origin.Location ⊑ publicRooms)
   )
 
   val allowLocationForHVAC = (new Legalese()
-    allow ⊑(purpose = Purpose.climate_control)
-    except ⊐(person = Origin.Person.bot)
+    allow (Purpose ⊑ Purpose.climate_control)
+    except (Origin.Person ⊐ Origin.Person.bot)
   )
-
-/*
-  val optInDayTime: T = (new Legalese()
-    allow ⊑(optInUser) except ⊒(nighttime)
-  )*/
-
-//  val policeCanDoAnything: T = (new Legalese()
-//    allow ⊑(Purpose.Policing)
-//  )
 }

@@ -238,14 +238,16 @@ themselves composed of further Legalese policies.
 # Example Uses
 
 ```scala
-  val publicRooms: Location = new Location(Seq("100", "101", "102"))
+  val publicRooms: Origin.Location =
+      Location(Seq("100", "101", "102"))
+      // TODO: add this implicit
 
   val allowPublicRooms = (new Legalese()
     allow (Origin.Location ⊑ publicRooms)
   )
 
   val allowLocationForHVAC = (new Legalese()
-    allow (Purpose ⊑ Purpose.climate_control)
+    allow (Purpose ⊒ Purpose.climate_control)
     except (Origin.Person ⊐ Origin.Person.bot)
   )
 ```
@@ -276,13 +278,5 @@ TODO
 * The use of LIO is not convenient.
 
   * Could use things like foldM, mapM, etc.
-
-* The construction of compound policies is not convenient.
-
-  * Could use a selector + comparitor + label design, where the
-    selector takes the main demo label and selects a sub-label, and
-    compares it using the given label and the given comparitor. We
-    could then write policies like this: `Origin.Time.business_hours ⊑
-    ATrue`
 
 * The use of spark is not yet done.

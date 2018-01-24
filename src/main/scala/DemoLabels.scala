@@ -7,6 +7,10 @@ import scala.collection.immutable.{Set=>SSet}
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
+class Selector[L](val select: DemoLabel => L) {
+  def apply(l: DemoLabel): L = select(l)
+}
+
 class DemoLabel(
   val person: Origin.Person.T = Origin.Person.bot,
   val location: Origin.Location.T = Origin.Location.bot,
@@ -60,7 +64,7 @@ object DemoLabel {
   }
 }
 
-object Purpose {
+object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4) {
   type T = USet[CoreTypes.Purpose]
 
   object Nothing extends NoneSet
@@ -77,7 +81,7 @@ object Purpose {
 
 object Origin {
   type Person = USet[CoreTypes.Person]
-  object Person {
+  object Person extends Selector[Person](_._1) {
     type T = Person
     val top: Person = AllSet()
     val bot: Person = NoneSet()
@@ -85,7 +89,7 @@ object Origin {
   }
 
   sealed abstract class Time extends Label[Time]
-  object Time {
+  object Time extends Selector[Time](_._3) {
     import CoreTypes.Implicits
     type T = Time
 
@@ -163,8 +167,9 @@ object Origin {
     }
   }
 
-  object Location {
-    type T = USet[CoreTypes.Location]
+  type Location = USet[CoreTypes.Location]
+  object Location extends Selector[Location](_._2) {
+    type T = Location
 
     object Nowhere extends NoneSet
     object Everywhere extends AllSet

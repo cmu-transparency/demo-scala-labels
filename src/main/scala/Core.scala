@@ -22,6 +22,7 @@ object Core {
 
   //type T[L, A] = LIO[L, A]
 
+  /*
   class LIOMonad[L <: Label[L], T]
       extends Monad[({ type LIOL[T] = LIO[L,T] })#LIOL] {
 
@@ -37,7 +38,7 @@ object Core {
       retval.getRight
     }
     }
-  }
+  }*/
 
   private[lio] case class LIO[L <: Label[L], T]
     (f: State[L] => (T, State[L])) {
