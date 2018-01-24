@@ -198,10 +198,11 @@ join operations noted earlier in this document.
 
 ### Label comparison policies
 
-TODO: not yet implemented
-
 The system provided a convenient way of writing policies that compare
-labels:
+labels. These are written using a selector that access some part of a
+larger label, a comparison, and a label to compare to. In the demo,
+there are many components in the overall label (type `DemoLabel`),
+requiring selectors to pick out the necessary component.
 
 ```scala
 implicit class LabelSelector(val select: DemoLabel => Label) {
@@ -265,15 +266,19 @@ TODO
 
 * `LIO[L, T]` - a label-manipulating computation that returns `T`
 
+* `DemoLabel` - the complete label composed of various sub-labels used
+  in the demo.
 
 # TODO
 
 * The real wifi-data is not included. Piotr is worried about including
   it in a demo since the data might be sensitive.
 
-* The upper bound and lower bound tracking at the same time is not tested.
+* Very few things are actually tested.
 
-* Abstract Boolean not yet included.
+* TCBeval and context label integration not done.
+
+* The upper bound and lower bound tracking at the same time is not tested.
 
 * The use of LIO is not convenient.
 
