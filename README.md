@@ -161,12 +161,15 @@ release of that information is allowed.
   }
 ```
 
-This definition is fairly general and allow one to check whether the
-inferred label of a piece of data is or is not of a particular type or
-has some particular feature. The goal, however, is for policies to
-check whether the inferred label contains a label of particular
-interest (contains in terms of an approximation that includes it).
+### Upper and Lower bounds
 
+This definition above fairly general and allow one to check whether
+the inferred label of a piece of data is or is not of a particular
+type or has some particular feature. The goal, however, is for
+policies to check whether the inferred label contains a label of
+particular interest (contains in terms of an approximation that
+includes it). The most convenient way of checking inclusion is using
+the lattice ordering operations mentioned earlier:
 
 ```scala
   def ⊑(a: Label, b: Label): Boolean = a ⊔ b == b
@@ -176,21 +179,80 @@ interest (contains in terms of an approximation that includes it).
   def ⊐(a: Label, b: Label): Boolean = a ⊒ b && a != b
 ```
 
+For example, if we have an abstract boolean indicating business hours
+as part, we can check that it is true, or at least not false,
+`business_hours ⊒ ATrue`. This stipulates that a label assigned to a
+protected computation or data needs to be assigned origins that are at
+least during business hours.
 
+Notice that in order to be sound in determining the statement above,
+the system needs to track an under-approximation of the labels
+assigned to a computation. That is, if we over-approximate a boolean
+indicating business hours to be both true and false (and
+over-approximation), the test `business_hours ⊒ ATrue` will be unsound
+in that it will return true even though non-business hour origin could
+have been involved. On the other hand, checking `business_hours ⊑
+ATrue` soundly requires an over-approximation. Thus the system tracks
+both over and under approximations of labels using both the meet and
+join operations noted earlier in this document.
+
+### Label comparison policies
+
+TODO: not yet implemented
+
+The system provided a convenient way of writing policies that compare
+labels:
 
 ```scala
-  val publicRooms: DemoLabel =
-    new DemoLabel(location = Location("100"))
+implicit class LabelSelector(val select: DemoLabel => Label) {
+  def ⊑(L): Boolean
+}
+```
+
+Together with accessor methods to get at the components of labels, we
+can write simply `Origin.Time.BusinessHours ⊒ ATrue` to designate a
+policy describe above.
+
+### Compound Policies
+
+Base policies can be combined into larger compound policies that are
+more convenient at specifying a real-world policy. The tool for this
+provided is the Legalese policy that is composed of a set of positive
+policies and a set of negative policies, with the interpretation that
+the composed policy allows a release if at least one of the positives
+allows it, and none of the negatives do:
+
+```scala
+class Legalese[...](
+  positives: Iterable[Policy[...]],
+  negatives: Iterable[Policy[...]]
+  ) {
+
+def apply(l: Label): Boolean =
+   positives.exists(_(l)) && negatives.forall(! _(l))
+```
+
+Such policies can be further composed, with positives and negatives
+themselves composed of further Legalese policies.
+
+# Example Uses
+
+```scala
+  val publicRooms: Location = new Location(Seq("100", "101", "102"))
 
   val allowPublicRooms = (new Legalese()
-    allow ⊑(publicRooms)
+    allow (Origin.Location ⊑ publicRooms)
   )
 
   val allowLocationForHVAC = (new Legalese()
-    allow ⊑(purpose = Purpose.climate_control)
-    except ⊐(person = Origin.Person.bot)
+    allow (Purpose ⊑ Purpose.climate_control)
+    except (Origin.Person ⊐ Origin.Person.bot)
   )
 ```
+
+TODO
+
+# Reference
 
 ## Basic types, as defined for the demo in DemoTypes.
 
@@ -202,3 +264,25 @@ interest (contains in terms of an approximation that includes it).
 * `LIO[L, T]` - a label-manipulating computation that returns `T`
 
 
+# TODO
+
+* The real wifi-data is not included. Piotr is worried about including
+  it in a demo since the data might be sensitive.
+
+* The upper bound and lower bound tracking at the same time is not tested.
+
+* Abstract Boolean not yet included.
+
+* The use of LIO is not convenient.
+
+  * Could use things like foldM, mapM, etc.
+
+* The construction of compound policies is not convenient.
+
+  * Could use a selector + comparitor + label design, where the
+    selector takes the main demo label and selects a sub-label, and
+    compares it using the given label and the given comparitor. We
+    could then write policies like this: `Origin.Time.business_hours ⊑
+    ATrue`
+
+* The use of spark is not yet done.
