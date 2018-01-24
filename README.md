@@ -1,4 +1,4 @@
-# Lightweight Labels for Scala
+# Shallow Label Computations for Scala
 
 This library and accompanied examples demonstrate a system for label
 tracking within the Scala programming language as well as flow policy
@@ -64,14 +64,23 @@ including person, location, and time.
    abstract class Time extends Origin ...
 ```
 
-All labels in this system are approximations of sets of concrete
-values modeled as lattices with least upper bound (join or ⊔) and
-greatest lower bound (meet or ⨅) operations as well as special top (⊤)
-and bottom (⊥) elements that approximate every concrete value or no
-concrete value, respectively. As an example, the Time label is
-designed to represent moments of time. The model in the demo is able
-to represent single time instances, all time instances between two
-moments, all instances, and no instances:
+## Labels and approximations
+
+A data value might need to have associated with it multiple
+annotations. For example an aggregation from a table whose rows are
+annotated with different time instances need to indicate that the
+origin of the aggregate includes all of those time instances. Tracking
+distinct labels could become cumbersome if the number of such labels
+grows. For this reason, labels are designed with sound approximation
+in mind. 
+
+Labels form lattices with an approximate union operation (least upper
+bound, join, or ⊔) and an approximate intersection operation (greatest
+lower bound, meet, or ⨅) as well as special top (⊤) and bottom (⊥)
+elements that approximate universal or empty sets respectively. As an
+example, the Time label is designed to represent moments of time. The
+model in the demo is able to represent single time instances, all time
+instances between two moments, all instances, and no instances:
 
 ```scala
   sealed abstract class Time extends Label {
@@ -107,18 +116,67 @@ represented on the right.
 
 This and related ordering operations are the basis of policy
 specification. Policy restrict the labels or rather the order of
-labels that arise inside of label-manipulating computations.
+labels that arise inside of label-manipulating computations (more on
+policies later).
 
-## Basic types, as defined for the demo in DemoTypes.
+The approximation scheme is fairly general and allows designs in
+support of various policy goals. For example, if business hours need
+to be accurately represented for policy purposes, this can be made
+precise in a Time label by including an approximate boolean indicating
+such:
 
-* `Label` - label that tracks purpose, and three types of origin:
-  person, location, time.
+```scala
+   case class BusinessTime(time: Time, is_business_hours: ABoolean) extends Time ...
+```
 
-* `Labeled[L, T]` - labeled data of type `T`
-
-* `LIO[L, T]` - a label-manipulating computation that returns `T`
+The approximate boolean `ABoolean` indicates true or false as is
+normal, but also both or neither. Policies that require origins to be
+completely within business hours can then make use of
+`is_business_hours` to make sure no non-business-hours origin has
+tainted a value.
 
 ## Policies
+
+Policies indicate the conditions under which data protected by the LIO
+monad can become available outside of it. Evaluation of a protected
+computation and the policy check is performed using the TCBeval
+operation on an `LIO[L, T]` computation.
+
+```scala
+   def TCBeval(context: Label, policy: Policy): T
+```
+
+The method returns `T` or fails with a policy violation if the given
+policy does not allow for the release of the data. The additional
+`context` label provided here is intended to convey contextual
+annotations such as purpose of the given release.
+
+Policies are composed of a basic components which are just functions
+that, given a label of a computation, return true to indicate the
+release of that information is allowed.
+
+```scala
+  trait Policy ... {
+    def apply(p: Label): Boolean = ???
+  }
+```
+
+This definition is fairly general and allow one to check whether the
+inferred label of a piece of data is or is not of a particular type or
+has some particular feature. The goal, however, is for policies to
+check whether the inferred label contains a label of particular
+interest (contains in terms of an approximation that includes it).
+
+
+```scala
+  def ⊑(a: Label, b: Label): Boolean = a ⊔ b == b
+  def ⊒(a: Label, b: Label): Boolean = a ⨅ b == b
+
+  def ⊏(a: Label, b: Label): Boolean = a ⊑ b && a != b
+  def ⊐(a: Label, b: Label): Boolean = a ⊒ b && a != b
+```
+
+
 
 ```scala
   val publicRooms: DemoLabel =
@@ -133,3 +191,14 @@ labels that arise inside of label-manipulating computations.
     except ⊐(person = Origin.Person.bot)
   )
 ```
+
+## Basic types, as defined for the demo in DemoTypes.
+
+* `Label` - label that tracks purpose, and three types of origin:
+  person, location, time.
+
+* `Labeled[L, T]` - labeled data of type `T`
+
+* `LIO[L, T]` - a label-manipulating computation that returns `T`
+
+

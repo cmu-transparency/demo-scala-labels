@@ -22,6 +22,23 @@ object Core {
 
   //type T[L, A] = LIO[L, A]
 
+  class LIOMonad[L <: Label[L], T]
+      extends Monad[({ type LIOL[T] = LIO[L,T] })#LIOL] {
+
+    def pure[A](x: A): LIO[L,A] = LIO.unit(x)
+    def flatMap[A,B](fa: LIO[L, A])(f: A => LIO[L,B]): LIO[L,B] = fa.flatMap(f)
+    def tailRecM[A,B](a: A)(f: A => LIO[L,Either[A,B]]): LIO[L,B] = LIO { s => {
+      var (retval, retstate) = f(a)
+      while (retval.isLeft) {
+        val temp = f(retval.getLeft)
+        retval := temp._1
+        retstate := temp._2
+      }
+      retval.getRight
+    }
+    }
+  }
+
   private[lio] case class LIO[L <: Label[L], T]
     (f: State[L] => (T, State[L])) {
 //      extends Monad[({ type LIOL[T] = LIO[L,T] })#LIOL] {
