@@ -206,7 +206,7 @@ requiring selectors to pick out the necessary component.
 
 ```scala
 implicit class LabelSelector(val select: DemoLabel => Label) {
-  def ⊑(L): Boolean
+  def ⊑(sublabel: L): Policy[...] = ???
 }
 ```
 
