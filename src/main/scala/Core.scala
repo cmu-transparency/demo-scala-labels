@@ -7,6 +7,8 @@ import Policy._
 import cats.Monad
 import cats.Functor
 import cats.Applicative
+import cats.Foldable
+import cats.Traverse
 import cats.implicits._
 
 import scala.annotation.tailrec
@@ -73,6 +75,14 @@ object Core {
       LIO(s => LIO.tailRecM(a, f, s))
 
   }
+
+  /** Example showing how to use the Monad instance of LIO */
+  def foldM_example[L <: Label[L]](a : List[Int], f : Int => LIO[L, Int]) : LIO[L, Int] =
+    Foldable[List].foldM[({type l[T] = LIO[L,T]})#l, Int, Int](a, 0) { (acc, i) =>
+      for {
+        x <- f(i)
+      } yield acc + x
+    }
 
   case class IFCException(s: String) extends Throwable {
     override def toString: String = s
