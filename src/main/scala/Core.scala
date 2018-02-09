@@ -6,6 +6,10 @@ import Policy._
 
 import cats.Monad
 import cats.Functor
+import cats.Applicative
+import cats.implicits._
+
+import scala.annotation.tailrec
 
 object Core {
   sealed case class State[L <: Label[L]]
@@ -20,59 +24,55 @@ object Core {
     override def toString = pc.toString + " under " + policy.toString
   }
 
-  //type T[L, A] = LIO[L, A]
+  private[lio] case class LIO[L <: Label[L], T] (f: State[L] => (T, State[L])) {
 
-  /*
-  class LIOMonad[L <: Label[L], T]
-      extends Monad[({ type LIOL[T] = LIO[L,T] })#LIOL] {
+    def apply(x: State[L]): (T, State[L]) = f(x)
 
-    def pure[A](x: A): LIO[L,A] = LIO.unit(x)
-    def flatMap[A,B](fa: LIO[L, A])(f: A => LIO[L,B]): LIO[L,B] = fa.flatMap(f)
-    def tailRecM[A,B](a: A)(f: A => LIO[L,Either[A,B]]): LIO[L,B] = LIO { s => {
-      var (retval, retstate) = f(a)
-      while (retval.isLeft) {
-        val temp = f(retval.getLeft)
-        retval := temp._1
-        retstate := temp._2
+    def flatMap[S](k: T => LIO[L, S]): LIO[L, S] =
+      LIO(s => {
+        val (retval, retstate) = f(s)
+        k(retval)(retstate)
+      } )
+
+    def map[S](k: T => S): LIO[L, S] =
+      LIO(s => {
+        val (retval, retstate) = f(s)
+        (k(retval), retstate)
+      } )
+
+    def filter(cond: T => Boolean): LIO[L, T] =
+      LIO(s => {
+        val (res, retstate) = f(s)
+        if (cond(res)) (res,retstate) else throw new MatchError(res)
+      })
+
+    def runLIO(s: State[L]): (T, State[L]) = Core.runLIO(this, s)
+    def evalLIO(s: State[L]): T = Core.evalLIO(this, s)
+  }
+
+  object LIO {
+    def unit[L <: Label[L], T](x: T): LIO[L, T] = LIO[L, T](s => (x,s))
+
+    @tailrec
+    def tailRecM[L <: Label[L], T, S](a : T, f : T => LIO[L, Either[T, S]], s : State[L]) : (S, State[L]) = {
+      val (retval, retstate) = f(a)(s)
+      retval match {
+        case Left(nextA) => tailRecM(nextA, f, retstate)
+        case Right(b)    => (b, retstate)
       }
-      retval.getRight
     }
-    }
-  }*/
+  }
 
-  private[lio] case class LIO[L <: Label[L], T]
-    (f: State[L] => (T, State[L])) {
-//      extends Monad[({ type LIOL[T] = LIO[L,T] })#LIOL] {
+  implicit def lioMonad[L <: Label[L]] : Monad[({type l[T] = LIO[L,T]})#l] =
+    new Monad[({type l[T] = LIO[L,T]})#l] {
+    def flatMap[T, S](fa : LIO[L,T])(f : T => LIO[L, S]) : LIO[L, S] = fa.flatMap(f)
 
-//  type LIOL[T] = LIO[L,T]
+    def pure[T](a : T) : LIO[L,T] = LIO.unit(a)
 
-  def apply(x: State[L]): (T, State[L]) = f(x)
+    def tailRecM[T, S](a : T)(f : T => LIO[L, Either[T, S]]) : LIO[L, S] =
+      LIO(s => LIO.tailRecM(a, f, s))
 
-  def flatMap[S](k: T => LIO[L, S]): LIO[L, S] =
-    LIO(s => {
-      val (retval, retstate) = f(s)
-      k(retval)(retstate)
-    } )
-
-  def map[S](k: T => S): LIO[L, S] =
-    LIO(s => {
-      val (retval, retstate) = f(s)
-      (k(retval), retstate)
-    } )
-
-  def filter(cond: T => Boolean): LIO[L, T] =
-    LIO(s => {
-      val (res, retstate) = f(s)
-      if (cond(res)) (res,retstate) else throw new MatchError(res)
-    })
-
-  def runLIO(s: State[L]): (T, State[L]) = Core.runLIO(this, s)
-  def evalLIO(s: State[L]): T = Core.evalLIO(this, s)
-}
-
-object LIO {
-  def unit[L <: Label[L], T](x: T): LIO[L, T] = LIO[L, T](s => (x,s))
-}
+  }
 
   case class IFCException(s: String) extends Throwable {
     override def toString: String = s
