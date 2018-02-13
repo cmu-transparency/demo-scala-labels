@@ -21,6 +21,7 @@ lazy val slio = (project in file("."))
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalaz"             %% "scalaz-core"              % "7.1.4",
       "org.scalatest"          %% "scalatest"                % "3.0.4",
-      "org.typelevel"          %% "cats-core"                % "1.0.1"
+      "org.typelevel"          %% "cats-core"                % "1.0.1",
+      "org.typelevel"          %% "cats-mtl-core"            % "0.2.1"
     )
   )

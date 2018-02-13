@@ -11,6 +11,10 @@ import cats.Foldable
 import cats.Traverse
 import cats.implicits._
 
+import cats.mtl.FunctorEmpty
+import cats.mtl.TraverseEmpty
+import cats.mtl.implicits._
+
 import scala.annotation.tailrec
 
 object Core {
@@ -53,6 +57,7 @@ object Core {
   }
 
   object LIO {
+    /* for Monad */
     def unit[L <: Label[L], T](x: T): LIO[L, T] = LIO[L, T](s => (x,s))
 
     @tailrec
@@ -63,16 +68,42 @@ object Core {
         case Right(b)    => (b, retstate)
       }
     }
+
+    /* for Applicative */
+    def ap[L <: Label[L], A,B](ff: LIO[L, A => B])(fa: LIO[L, A]): LIO[L, B] = ???
+
+    /* traversals */
+    def foldM[L <: Label[L], F[_], A, B]
+    (fa: F[A], b: B)
+    (fab: (B, A) => LIO[L, B])
+    (implicit FF: Foldable[F]): LIO[L, B] =
+      FF.foldM[({type l[T] = LIO[L,T]})#l, A, B](fa, b)(fab)
+
+    def filterM[L <: Label[L], F[_], A]
+      (fa: F[A])(f: A => LIO[L, Boolean])
+      (implicit T: TraverseEmpty[F]): LIO[L, F[A]] =
+      T.filterA[({type l[T] = LIO[L,T]})#l, A](fa)(f)
   }
 
-  implicit def lioMonad[L <: Label[L]] : Monad[({type l[T] = LIO[L,T]})#l] =
+  implicit def applicativeForLIO[L <: Label[L]]
+      : Applicative[({type l[T] = LIO[L,T]})#l] =
+    new Applicative[({type l[T] = LIO[L,T]})#l] {
+
+      def ap[A,B](ff: LIO[L, A => B])(fa: LIO[L, A]): LIO[L, B] = LIO.ap(ff)(fa)
+      def pure[T](a: T): LIO[L,T] = LIO.unit(a)
+  }
+
+  implicit def monadForLIO[L <: Label[L]]
+      : Monad[({type l[T] = LIO[L,T]})#l] =
     new Monad[({type l[T] = LIO[L,T]})#l] {
-    def flatMap[T, S](fa : LIO[L,T])(f : T => LIO[L, S]) : LIO[L, S] = fa.flatMap(f)
 
-    def pure[T](a : T) : LIO[L,T] = LIO.unit(a)
+      def flatMap[T, S](fa : LIO[L,T])
+        (f : T => LIO[L, S]) : LIO[L, S] = fa.flatMap(f)
 
-    def tailRecM[T, S](a : T)(f : T => LIO[L, Either[T, S]]) : LIO[L, S] =
-      LIO(s => LIO.tailRecM(a, f, s))
+      def pure[T](a : T) : LIO[L,T] = LIO.unit(a)
+
+      def tailRecM[T, S](a : T)(f : T => LIO[L, Either[T, S]]) : LIO[L, S] =
+        LIO(s => LIO.tailRecM(a, f, s))
 
   }
 
