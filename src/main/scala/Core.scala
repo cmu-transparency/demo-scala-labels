@@ -61,7 +61,8 @@ object Core {
     def unit[L <: Label[L], T](x: T): LIO[L, T] = LIO[L, T](s => (x,s))
 
     @tailrec
-    def tailRecM[L <: Label[L], T, S](a : T, f : T => LIO[L, Either[T, S]], s : State[L]) : (S, State[L]) = {
+    def tailRecM[L <: Label[L], T, S]
+      (a: T, f: T => LIO[L, Either[T, S]], s: State[L]): (S, State[L]) = {
       val (retval, retstate) = f(a)(s)
       retval match {
         case Left(nextA) => tailRecM(nextA, f, retstate)
@@ -70,7 +71,15 @@ object Core {
     }
 
     /* for Applicative */
-    def ap[L <: Label[L], A,B](ff: LIO[L, A => B])(fa: LIO[L, A]): LIO[L, B] = ???
+    def ap[L <: Label[L], A,B]
+      (ff: LIO[L, A => B])
+      (fa: LIO[L, A]): LIO[L, B] = LIO( s => {
+        val (fa2b, s2) = ff(s) // unsure if state needs to be threaded in here
+        val (a, s3) = fa(s2)
+        val b = fa2b(a)
+        (b, s3)
+      }
+    )
 
     /* traversals */
     def foldM[L <: Label[L], F[_], A, B]

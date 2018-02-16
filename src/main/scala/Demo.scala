@@ -10,8 +10,17 @@ import HiLow._
 
 object Demo extends App {
 
-  println(StringUtil.prettyPrint(Data.Users.users))
+  //println(StringUtil.prettyPrint(Data.Users.users))
 
+  import System.Aggregator._
+
+  Data.Users.users.foreach { case (k, v) =>
+    println(s"$k -> $v")
+  }
+
+  aggregate(readings).foreach { case (k, v) =>
+    println(s"$k -> $v")
+  }
 
   //val sensors = System.Sensors
   //val timer = System.Timer

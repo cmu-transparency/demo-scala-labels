@@ -50,8 +50,6 @@ object System {
     val sensors = Data.Sensors.sensors
     val readings = Data.Readings.raw_readings
 
-    import cats.Functor
-
     /* Filter the given readings to those at a given location. */
     def readingsAtLocation(
       readings: Seq[Data.RawReading],
@@ -83,4 +81,5 @@ object System {
         }
 
   }
+
 }
