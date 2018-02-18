@@ -4,13 +4,45 @@ import edu.cmu.spf.lio._
 
 abstract class Policy[L <: Label[L]] {
   def apply(l: L): Boolean
+
+  def not(): Policy[L] = new Policy[L] {
+    def apply(l: L): Boolean = ! this.apply(l)
+  }
+
+  def and(that: Policy[L]): Policy[L] = new Policy[L] {
+    def apply(l: L): Boolean = this.apply(l) && that.apply(l)
+  }
+
+  def or(that: Policy[L]): Policy[L] = new Policy[L] {
+    def apply(l: L): Boolean = this.apply(l) || that.apply(l)
+  }
+
+  def xor(that: Policy[L]): Policy[L] = new Policy[L] {
+    def apply(l: L): Boolean = this.apply(l) ^ that.apply(l)
+  }
+
 }
 
 object Policy {
-  def AllowAll[L <: Label[L]] = new Policy[L] {
-    def apply(l: L): Boolean = true
-    override def toString = "AllowAll"
+  def all[L <: Label[L]](these: Iterable[Policy[L]]): Policy[L] =
+    new Policy[L] {
+      def apply(l: L): Boolean = these.forall(_(l))
+    }
+
+  def any[L <: Label[L]](these: Iterable[Policy[L]]): Policy[L] =
+    new Policy[L] {
+      def apply(l: L): Boolean = these.exists(_(l))
   }
+
+  def Allow[L <: Label[L]] = new Policy[L] {
+    def apply(l: L): Boolean = true
+    override def toString = "Allow"
+  }
+  def Deny[L <: Label[L]] = new Policy[L] {
+    def apply(l: L): Boolean = false
+    override def toString = "Deny"
+  }
+
   /*
   /* Like PositiveNegative below except nested policies inherit the
    * label requirements from parent policies. */

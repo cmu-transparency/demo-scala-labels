@@ -23,7 +23,7 @@ import cats.mtl.implicits._
 object System {
   import DemoTypes._
 
-//  val datadir = "/Users/piotrm/Dropbox/repos/github/spfoundations/data-wifi/"
+  //  val datadir = "/Users/piotrm/Dropbox/repos/github/spfoundations/data-wifi/"
 
   object Identifier {
     val users = Data.Users.users
@@ -42,13 +42,6 @@ object System {
       for {
         sensor <- Core.unlabel(sensors(sensor_id))
       } yield sensor.location
-  }
-
-  object Aggregator {
-    import DemoTypes._
-
-    val sensors = Data.Sensors.sensors
-    val readings = Data.Readings.raw_readings
 
     /* Filter the given readings to those at a given location. */
     def readingsAtLocation(
@@ -60,6 +53,13 @@ object System {
           loc <- Locator.locate_sensor(reading.sensor_id)
         } yield loc == location
       }
+  }
+
+  object Aggregator {
+    import DemoTypes._
+
+    val sensors = Data.Sensors.sensors
+    val readings = Data.Readings.raw_readings
 
     /* Look up how many readings there are at a particular location. */
     def occupancy(location: CoreTypes.Location): LIO[Int] = {
@@ -79,7 +79,6 @@ object System {
         .foldLeft(Map[CoreTypes.Location, LIO[Int]]()) {
           case (m, loc) => m + (loc -> occupancy(loc))
         }
-
   }
 
 }

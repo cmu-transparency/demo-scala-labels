@@ -12,6 +12,8 @@ object Demo extends App {
 
   //println(StringUtil.prettyPrint(Data.Users.users))
 
+  import DemoTypes._
+
   import System.Aggregator._
 
   Data.Users.users.foreach { case (k, v) =>
@@ -20,6 +22,27 @@ object Demo extends App {
 
   aggregate(readings).foreach { case (k, v) =>
     println(s"$k -> $v")
+  }
+
+  object HVAC {
+    val readings = Data.Readings.raw_readings
+
+    /* Compute activation of the HVAC system for each room. HVAC is
+     * activated if there is at least one person in the room. */
+    val activity: Map[CoreTypes.Location, LIO[Boolean]] =
+      System.Aggregator.aggregate(readings).mapValues { occupancyM =>
+        for {
+          occupancy <- occupancyM
+        } yield occupancy > 0
+      }
+/*
+    val policy = (new Legalese()
+      deny ()
+      except (
+        Origin.Location ⊑ Origin.Location.⊤ and
+        Purpose ⊑ Purpose.climate_control
+      )
+ */
   }
 
   //val sensors = System.Sensors

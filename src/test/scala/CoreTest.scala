@@ -15,8 +15,8 @@ class CoreSpec extends FlatSpec {
   val lowPC: L = BoundedLabel[LBase](Low)
   val hiPC: L  = BoundedLabel[LBase](Hi)
 
-  val lowExec = State[L](lowPC, Policy.AllowAll)
-  val hiExec = State[L](hiPC, Policy.AllowAll)
+  val lowExec = State[L](lowPC, Policy.Allow)
+  val hiExec = State[L](hiPC, Policy.Allow)
 
   "join with Hi" should "return Hi" in {
     assert(Hi === Hi.join(Low))
