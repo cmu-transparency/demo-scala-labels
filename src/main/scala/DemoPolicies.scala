@@ -8,18 +8,31 @@ object DemoPolicy {
   type L = DemoLabel.T
   type T = Policy[L]
 
-  implicit class LabelCompare[L <: Label[L]](select: Selector[L]) {
+  implicit def policyOfCond[L <: Label[L]](
+    allow: Boolean,
+    cond: Condition[L]
+  ): Policy[L] =
+    new Policy[L] {
+      def apply(l: L): Option[Boolean] =
+        if (cond(l)) { Some(allow) } else { None }
+    }
+
+  /*
+  implicit class LabelPolicy[L <: Label[L]](
+    condition: Condition,
+    select: Selector[L]
+  ) {
     def ⊑(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
-      def apply(dl: DemoLabel): Boolean = select(dl) <= l
+      def apply(dl: DemoLabel): Option[Boolean] = Some(select(dl) <= l)
     }
     def ⊏(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
-      def apply(dl: DemoLabel): Boolean = select(dl) < l
+      def apply(dl: DemoLabel): Option[Boolean] = Some(select(dl) < l)
     }
     def ⊒(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
-      def apply(dl: DemoLabel): Boolean = select(dl) >= l
+      def apply(dl: DemoLabel): Option[Boolean] = Some(select(dl) >= l)
     }
     def ⊐(l: L): Policy[DemoLabel] = new Policy[DemoLabel] {
-      def apply(dl: DemoLabel): Boolean = select(dl) > l
+      def apply(dl: DemoLabel): Option[Boolean] = Some(select(dl) > l)
     }
 
     def ≤(l: L): Policy[DemoLabel] = ⊑(l)
@@ -29,6 +42,22 @@ object DemoPolicy {
     def >=(l: L): Policy[DemoLabel] = ⊒(l)
     def >(l: L): Policy[DemoLabel] = ⊐(l)
   }
+  */
+
+  implicit class LabelCondition[L <: Label[L]](select: Selector[L]) {
+    def ⊑(l: L): Condition[DemoLabel] = new Condition[DemoLabel](select(_) <= l)
+    def ⊏(l: L): Condition[DemoLabel] = new Condition[DemoLabel](select(_) < l)
+    def ⊒(l: L): Condition[DemoLabel] = new Condition[DemoLabel](select(_) >= l)
+    def ⊐(l: L): Condition[DemoLabel] = new Condition[DemoLabel](select(_) > l)
+
+    def ≤ (l: L): Condition[DemoLabel] = ⊑(l)
+    def <=(l: L): Condition[DemoLabel] = ⊑(l)
+    def < (l: L): Condition[DemoLabel] = ⊏(l)
+    def ≥ (l: L): Condition[DemoLabel] = ⊒(l)
+    def >=(l: L): Condition[DemoLabel] = ⊒(l)
+    def > (l: L): Condition[DemoLabel] = ⊐(l)
+  }
+
 /*
   implicit def ⊑(dl: DemoLabel) = LabelLeq(dl)
   implicit def ⊒(dl: DemoLabel) = LabelGeq(dl)
@@ -87,12 +116,12 @@ object Examples {
   val publicRooms: Origin.Location =
     CoreTypes.Location("100")
 
-  val allowPublicRooms = (new Legalese()
-    allow(Origin.Location ⊑ publicRooms)
-  )
+  val allowPublicRooms = Legalese
+    .allow(Origin.Location ⊑ publicRooms)
 
-  val allowLocationForHVAC = (new Legalese()
-    allow (Purpose ⊑ Purpose.climate_control)
-    except (Origin.Person ⊐ Origin.Person.bot)
-  )
+  val allowLocationForHVAC = Legalese
+    .allow (Purpose ⊑ Purpose.climate_control)
+    .except (Legalese
+      .deny(Origin.Person ⊐ Origin.Person.bot)
+    )
 }

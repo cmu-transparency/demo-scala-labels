@@ -16,7 +16,7 @@ object Data {
   import DemoLabel.Implicits._
 
   val labelingContext: State =
-    new State(DemoLabel.bot, Policy.Allow)
+    new State(DemoLabel.bot, Policy.AllowAll)
 
   object Users {
     import DemoLabel.Implicits._

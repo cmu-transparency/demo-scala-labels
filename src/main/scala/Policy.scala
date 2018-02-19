@@ -2,17 +2,29 @@ package edu.cmu.spf.lio
 
 import edu.cmu.spf.lio._
 
-abstract class Policy[L <: Label[L]] {
-  def apply(l: L): Boolean
+import cats.Monad
+import cats.implicits._
 
-  def not(): Policy[L] = new Policy[L] {
-    def apply(l: L): Boolean = ! this.apply(l)
+/* Policies, given a label, return Option[Boolean], indicating
+ *   None        - the policy does not apply,
+ *   Some(True)  - the policy applies and in makes a positive decision, or
+ *   Some(False) - the policy applies but makes a negative decision.
+ */
+abstract class Policy[L <: Label[L]] {
+  def apply(l: L): Option[Boolean]
+
+  def >>(f: Boolean => Boolean): Policy[L] = new Policy[L] {
+    def apply(l: L): Option[Boolean] = this.apply(l) >>= (r => Some(f(r)))
   }
+
+  def not(): Policy[L] = this >> (! _)
 
   def and(that: Policy[L]): Policy[L] = new Policy[L] {
-    def apply(l: L): Boolean = this.apply(l) && that.apply(l)
+    def apply(l: L): Option[Boolean] =
+      this.apply(l) >>= (a => that.apply(l) >>= (b => Some(a && b)))
   }
 
+  /*
   def or(that: Policy[L]): Policy[L] = new Policy[L] {
     def apply(l: L): Boolean = this.apply(l) || that.apply(l)
   }
@@ -20,10 +32,11 @@ abstract class Policy[L <: Label[L]] {
   def xor(that: Policy[L]): Policy[L] = new Policy[L] {
     def apply(l: L): Boolean = this.apply(l) ^ that.apply(l)
   }
-
+   */
 }
 
 object Policy {
+  /*
   def all[L <: Label[L]](these: Iterable[Policy[L]]): Policy[L] =
     new Policy[L] {
       def apply(l: L): Boolean = these.forall(_(l))
@@ -33,14 +46,18 @@ object Policy {
     new Policy[L] {
       def apply(l: L): Boolean = these.exists(_(l))
   }
-
-  def Allow[L <: Label[L]] = new Policy[L] {
-    def apply(l: L): Boolean = true
+   */
+  def AllowAll[L <: Label[L]] = new Policy[L] {
+    def apply(l: L): Option[Boolean] = Some(true)
     override def toString = "Allow"
   }
-  def Deny[L <: Label[L]] = new Policy[L] {
-    def apply(l: L): Boolean = false
+  def DenyAll[L <: Label[L]] = new Policy[L] {
+    def apply(l: L): Option[Boolean] = Some(false)
     override def toString = "Deny"
+  }
+  def NotApplicableAll[L <: Label[L]] = new Policy[L] {
+    def apply(l: L): Option[Boolean] = None
+    override def toString = "N/A"
   }
 
   /*

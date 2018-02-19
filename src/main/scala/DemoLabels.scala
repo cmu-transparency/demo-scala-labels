@@ -7,8 +7,12 @@ import scala.collection.immutable.{Set=>SSet}
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
-class Selector[L](val select: DemoLabel => L) {
+case class Selector[L](val select: DemoLabel => L) {
   def apply(l: DemoLabel): L = select(l)
+}
+
+case class Condition[L](val cond: L => Boolean) {
+  def apply(l: L): Boolean = cond(l)
 }
 
 class DemoLabel(
