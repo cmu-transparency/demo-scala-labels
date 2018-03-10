@@ -13,24 +13,33 @@ case class Selector[L](val select: DemoLabel => L) {
 
 case class Condition[L](val cond: L => Boolean) {
   def apply(l: L): Boolean = cond(l)
+
+  def and(that: Condition[L]): Condition[L] = new Condition[L](
+    l => apply(l) && that.apply(l)
+  ) {
+    override def toString: String = this.toString + " AND " + that.toString
+  }
 }
 
 class DemoLabel(
   val person: Origin.Person.T = Origin.Person.bot,
   val location: Origin.Location.T = Origin.Location.bot,
   val time: Origin.Time.T = Origin.Time.bot,
-  val purpose: Purpose.T = Purpose.bot
+  val purpose: Purpose.T = Purpose.bot,
+  val role: Role.T = Role.bot
 )
-    extends LabelTuple4[
-      Origin.Person.T,
-      Origin.Location.T,
-      Origin.Time.T,
-      Purpose.T](person, location, time, purpose)
-    with LabelTuple4Functions[
+    extends LabelTuple5[
       Origin.Person.T,
       Origin.Location.T,
       Origin.Time.T,
       Purpose.T,
+      Role.T](person, location, time, purpose, role)
+    with LabelTuple5Functions[
+      Origin.Person.T,
+      Origin.Location.T,
+      Origin.Time.T,
+      Purpose.T,
+      Role.T,
       DemoLabel]
     with Label[DemoLabel]
 
@@ -41,7 +50,8 @@ object DemoLabel {
     Origin.Person.bot,
     Origin.Location.bot,
     Origin.Time.bot,
-    Purpose.bot)
+    Purpose.bot,
+    Role.bot)
 
   object Implicits {
     implicit def personToPersonLabel(p: CoreTypes.Person):
@@ -77,10 +87,25 @@ object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4) {
   val bot: T = Nothing.asInstanceOf[T]
   val top: T = Everything.asInstanceOf[T]
 
-  val policing = Purpose(CoreTypes.Purpose("policing"))
-  val climate_control = Purpose(CoreTypes.Purpose("climate control"))
+  val Legal = Purpose(CoreTypes.Purpose("Legal"))
+  val ClimateControl = Purpose(CoreTypes.Purpose("ClimateControl"))
+  val Sharing = Purpose(CoreTypes.Purpose("Sharing"))
 
   def apply(p: CoreTypes.Purpose): T = ThisSet(Seq(p).toSet)
+}
+
+object Role extends Selector[USet[CoreTypes.Role]](_._5) {
+  type T = USet[CoreTypes.Role]
+
+  object Nothing extends NoneSet
+  object Everything extends AllSet
+
+  val bot: T = Nothing.asInstanceOf[T]
+  val top: T = Everything.asInstanceOf[T]
+
+  val Affiliate = Role(CoreTypes.Role("Affiliate"))
+
+  def apply(p: CoreTypes.Role): T = ThisSet(Seq(p).toSet)
 }
 
 object Origin {

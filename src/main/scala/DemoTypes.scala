@@ -43,6 +43,7 @@ object CoreTypes {
    */
 
   case class Purpose(val name: String)
+  case class Role(val name: String)
   case class Location(val name: String)
   case class Person(val device_id: Int, val name: String)
   case class Sensor(val sensor_id: Int, val location: Location)

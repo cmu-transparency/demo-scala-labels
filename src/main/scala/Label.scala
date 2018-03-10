@@ -154,6 +154,42 @@ class LabelTuple4[A <: Label[A], B <: Label[B], C <: Label[C], D <: Label[D]]
     extends Tuple4[A,B,C,D](a,b,c,d) {
 }
 
+trait LabelTuple5Functions[
+  A <: Label[A],
+  B <: Label[B],
+  C <: Label[C],
+  D <: Label[D],
+  E <: Label[E],
+  T <: Tuple5[A,B,C,D,E]
+] extends Tuple5[A,B,C,D,E] { self: T =>
+
+  def join(that: T) = (
+    this._1.join(that._1),
+    this._2.join(that._2),
+    this._3.join(that._3),
+    this._4.join(that._4),
+    this._5.join(that._5)
+  ).asInstanceOf[T]
+
+  def meet(that: T) = (
+    this._1.meet(that._1),
+    this._2.meet(that._2),
+    this._3.meet(that._3),
+    this._4.meet(that._4),
+    this._5.meet(that._5)
+  ).asInstanceOf[T]
+}
+
+class LabelTuple5[
+  A <: Label[A],
+  B <: Label[B],
+  C <: Label[C],
+  D <: Label[D],
+  E <: Label[E]]
+  (val a: A, val b: B, val c: C, val d: D, val e: E)
+    extends Tuple5[A,B,C,D,E](a,b,c,d,e) {
+}
+
 trait DefaultTop[T] { self: T =>
   def join(t: T): T = this
   def meet(t: T): T = t

@@ -1,15 +1,15 @@
 package edu.cmu.spf.lio.demo
 
 import edu.cmu.spf.lio._
-//import edu.cmu.spf.lio.demo._
 import edu.cmu.spf.lio.demo.System._
-
-/* Policies that accept or reject (depending on positive) when on one of
- * the ins and none of the outs. */
 
 //  type LL = Legalese
 
 object Legalese {
+  def appliesToAll[L <: Label[L]]: Condition[L] = new Condition[L](_ => true) {
+    override def toString: String = ""
+  }
+
   def allow[L <: Label[L]]: Legalese[L] =
     new Legalese(true, Condition[L](_ => true))
   def deny[L <: Label[L]]: Legalese[L] =
@@ -68,11 +68,11 @@ case class Legalese[L <: Label[L]](
     val outs_app: Iterable[Boolean] =
       except.map{_(l)}.filter { ! _.isEmpty }.map{_.get}
 
-    (cond(l), outs_app.exists(a => !a)) match {
-      case (true, true)
-         | (false, true) => Some(false)
-      case (true, false) => Some(true)
-      case (false, false) => None
+    (cond(l), outs_app.exists(a => a ^ isAllow)) match {
+      case (true, true) => Some(! isAllow)
+      case (true, false) => Some(isAllow)
+      case (false, false)
+         | (false,true) => None
     }
   }
 
@@ -84,19 +84,35 @@ case class Legalese[L <: Label[L]](
     throw PolicySyntaxException("cannot add sub-policy to a negative legalese policy")
   }
 
-//  def allow(some: Iterable[Policy[L]]): Legalese[L] = _when_positive {
-//    Legalese(positive, ins ++ some, outs)
-//  }
-//  def allow(some: Policy[L]): Legalese[L] = _when_positive {
-//    Legalese(positive, ins ++ Seq(some), outs)
-//  }
+/*  def allow(some: Iterable[Policy[L]]): Legalese[L] = _when_positive {
+    Legalese(positive, ins ++ some, outs)
+  }
+  def allow(some: Policy[L]): Legalese[L] = _when_positive {
+    Legalese(positive, ins ++ Seq(some), outs)
+  }
 
-//  def deny(some: Iterable[Policy[L]]): Legalese[L] = _when_negative {
-//    Legalese(positive, ins ++ some, outs)
-//  }
-//  def deny(some: Policy[L]): Legalese[L] = _when_negative {
-//    Legalese(positive, ins ++ Seq(some), outs)
-//  }
+  def deny(some: Iterable[Policy[L]]): Legalese[L] = _when_negative {
+    Legalese(positive, ins ++ some, outs)
+  }
+  def deny(some: Policy[L]): Legalese[L] = _when_negative {
+    Legalese(positive, ins ++ Seq(some), outs)
+  }
+ */
+
+  override def toString: String = {
+    val condString = cond.toString
+    "(" ++
+    {if (isAllow) { "ALLOW" } else { "DENY" }} ++
+    {if (condString == "") { "" } else {" " ++ condString}} ++
+    " " ++
+    { if (except.size > 0) {
+      "EXCEPT " ++ except.map(_.toString).mkString("\n")
+    } else {
+      ""
+    }
+    } ++
+    ")"
+  }
 
   def except(some: Iterable[Legalese[L]]): Legalese[L] = {
       Legalese(isAllow, cond, except ++ some)
