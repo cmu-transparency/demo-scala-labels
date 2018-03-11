@@ -15,7 +15,9 @@ trait Lattice[T] extends Serializable {
   def meet(l1: T, l2: T): T
 }
 
-trait LatticeElement[T] extends PartiallyOrdered[T] { self: T =>
+trait LatticeElement[T] extends PartiallyOrdered[T]
+   with Serializable { self: T =>
+
   def join(that: T): T
   def meet(that: T): T
 
@@ -34,12 +36,16 @@ trait LatticeElement[T] extends PartiallyOrdered[T] { self: T =>
   }
 }
 
-trait Label[T] extends LatticeElement[T] { self: T => }
+trait Label[T <: Serializable]
+    extends LatticeElement[T]
+    with Serializable
+{ self: T => }
 
 abstract class LabelLattice[T] extends Lattice[T]
 
 case class BoundedLabel[T <: Label[T]](val lower: T, val upper: T)
-    extends Label[BoundedLabel[T]] {
+    extends Label[BoundedLabel[T]]
+    with Serializable {
 
   override def toString = "[" + lower.toString + "," + upper.toString + "]"
 

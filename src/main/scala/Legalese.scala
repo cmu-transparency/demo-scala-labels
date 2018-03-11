@@ -3,17 +3,13 @@ package edu.cmu.spf.lio.demo
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
-//  type LL = Legalese
-
 object Legalese {
   def appliesToAll[L <: Label[L]]: Condition[L] = new Condition[L](_ => true) {
     override def toString: String = ""
   }
 
-  def allow[L <: Label[L]]: Legalese[L] =
-    new Legalese(true, Condition[L](_ => true))
-  def deny[L <: Label[L]]: Legalese[L] =
-    new Legalese(false, Condition[L](_ => true))
+  def allow[L <: Label[L]]: Legalese[L] = new Legalese(true, appliesToAll)
+  def deny[L <: Label[L]]: Legalese[L] = new Legalese(false, appliesToAll)
 
   def allow[L <: Label[L]](cond: Condition[L]): Legalese[L] =
     new Legalese(true, cond)

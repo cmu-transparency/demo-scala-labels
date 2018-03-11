@@ -151,18 +151,19 @@ object Core {
   }
 
   // AAA: We probably need to handle IFC exceptions differently
-  def label[L <: Label[L], T](l: L, x: T): LIO[L, Labeled[L,T]] =
+  def label[L <: Label[L], T <: Serializable](l: L, x: T)
+      : LIO[L, Labeled[L,T]] =
     new LIO(s =>
       if (s.canLabel(l)) (Labeled(l, x), s)
       else throw IFCException(s.toString + " cannot label " + l.toString)
     )
 
-  def label[L <: Label[L], T](x: T): LIO[L, Labeled[L,T]] =
+  def label[L <: Label[L], T <: Serializable](x: T): LIO[L, Labeled[L,T]] =
     new LIO(
       s => (Labeled(s.pc, x), s)
     )
 
-  def unlabel[L <: Label[L], T](lt: Labeled[L, T]): LIO[L, T] =
+  def unlabel[L <: Label[L], T <: Serializable](lt: Labeled[L, T]): LIO[L, T] =
     LIO[L, T](s => {
       val newPc = s.pc.join(lt.label);
       if (s.pc <= newPc) { //TODO: Fix  && newPc <= s.upper) {

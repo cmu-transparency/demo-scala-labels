@@ -15,6 +15,44 @@ object Data {
   import DemoTypes._
   import DemoLabel.Implicits._
 
+  import java.io._
+  import java.nio.file.{Paths, Files}
+
+  /* https://gist.github.com/ramn/5566596 */
+  class ObjectInputStreamWithCustomClassLoader(
+    fileInputStream: FileInputStream
+  ) extends ObjectInputStream(fileInputStream) {
+    override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
+      try { Class.forName(desc.getName, false, getClass.getClassLoader) }
+      catch { case ex: ClassNotFoundException => super.resolveClass(desc) }
+    }
+  }
+
+  def loadOrMake[T](filename: String)(f: => T): T = {
+    if (Files.exists(Paths.get(filename))) {
+      println(s"$filename exists, loading")
+      load(filename)
+    } else {
+      println(s"$filename does not exist, computing")
+      val temp:T = f
+      write(filename, temp)
+      temp
+    }
+  }
+
+  def load[T](filename: String): T = {
+    val ois = new ObjectInputStreamWithCustomClassLoader(new FileInputStream(filename))
+    val e = ois.readObject.asInstanceOf[T]
+    ois.close
+    e
+  }
+
+  def write[T](filename: String, o: T): Unit = {
+    val oos = new ObjectOutputStream(new FileOutputStream(filename))
+    oos.writeObject(o)
+    oos.close
+  }
+
   val labelingContext: State =
     new State(DemoLabel.bot, Policy.AllowAll)
 
@@ -29,9 +67,12 @@ object Data {
       CoreTypes.Person(1005, "Helen Nissenbaum")
     )
 
-    val users: Map[Int, Labeled[L, CoreTypes.Person]] = raw_users.map { u =>
-      (u.device_id, Core.label(u: DemoLabel, u).evalLIO(labelingContext))
-    }.toMap
+    val users: Map[Int, Labeled[L, CoreTypes.Person]] =
+      loadOrMake("users.serialized") {
+      raw_users.map { u =>
+        (u.device_id, Core.label(u: DemoLabel, u).evalLIO(labelingContext))
+      }.toMap
+      }
   }
 
   object Locations {

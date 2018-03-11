@@ -12,8 +12,11 @@ object Demo extends App {
 
   //println(StringUtil.prettyPrint(Data.Users.users))
 
+  import Policy._
+  import DemoPolicy._
+  import DemoLabel.Implicits._
+  import Legalese._
   import DemoTypes._
-
   import System.Aggregator._
 
   Data.Users.users.foreach { case (k, v) =>
@@ -61,4 +64,25 @@ object Demo extends App {
   //    println(row)
   //  }
 
+  val publicRooms: Origin.Location =
+    CoreTypes.Location("100")
+
+  val allowPublicRooms = Legalese
+    .allow(Origin.Location ⊑ publicRooms)
+
+  val allowLocationForHVAC = Legalese
+    .allow (Purpose ⊑ Purpose.ClimateControl)
+    .except (Legalese
+      .deny(Origin.Person ⊐ Origin.Person.bot)
+    )
+
+  val specExample = allow.except(
+    deny(Origin.Person ⊐ Origin.Person.bot and Purpose ⊒ Purpose.Sharing)
+      .except(Seq(
+        allow(Role ⊒ Role.Affiliate),
+        allow(Purpose ⊒ Purpose.Legal)
+      ))
+  )
+
+  println(specExample.toString)
 }

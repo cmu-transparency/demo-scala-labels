@@ -59,24 +59,6 @@ object Policy {
     def apply(l: L): Option[Boolean] = None
     override def toString = "N/A"
   }
-
-  /*
-  /* Like PositiveNegative below except nested policies inherit the
-   * label requirements from parent policies. */
-  case class Legalese(
-    val allow: Boolean,
-    val positives: Iterable[Legalese],
-    val negatives: Iterable[Legalese]
-  ) extends Policy[L] {
-
-    def apply(lower: DL, upper: DL): Boolean = {
-      positives.exists{ p =>
-        p(lower, upper)
-
-
-      && negatives.forall(! _(lower, upper))
-    }
-  }*/
 }
 
 /*

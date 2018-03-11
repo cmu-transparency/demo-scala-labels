@@ -17,7 +17,7 @@ object CoreTypes {
 //    implicit def toTime(t: Long): Time = Time(Instant.now())
   }
 
-  implicit class Time(val i: Timestamp) {
+  implicit class Time(val i: Timestamp) extends Serializable {
     def <(that: Time): Boolean = this.i.compareTo(that.i) < 0
     def <=(that: Time): Boolean = this.i.compareTo(that.i) <= 0
     def min(that: Time): Time = if (this <= that) this else that
@@ -42,11 +42,11 @@ object CoreTypes {
   }
    */
 
-  case class Purpose(val name: String)
-  case class Role(val name: String)
-  case class Location(val name: String)
-  case class Person(val device_id: Int, val name: String)
-  case class Sensor(val sensor_id: Int, val location: Location)
+  case class Purpose(val name: String) extends Serializable
+  case class Role(val name: String) extends Serializable
+  case class Location(val name: String) extends Serializable
+  case class Person(val device_id: Int, val name: String) extends Serializable
+  case class Sensor(val sensor_id: Int, val location: Location) extends Serializable
 }
 
 import CoreTypes._
@@ -56,7 +56,7 @@ import cats.Monad
 
 object DemoTypes {
   type L = DemoLabel.T
-  type Ld[T] = Labeled[L, T]
+  type Ld[T <: Serializable] = Labeled[L, T]
   type LIO[T] = Core.LIO[L, T]
   type State = Core.State[L]
 
@@ -64,7 +64,7 @@ object DemoTypes {
 
 //  }
 
-  sealed abstract class Purpose
+  sealed abstract class Purpose extends Serializable
   case object Policing extends Purpose
   case object Auditing extends Purpose
   case object ClimateControl extends Purpose

@@ -251,6 +251,14 @@ themselves composed of further Legalese policies.
     allow (Purpose ⊒ Purpose.climate_control)
     except (Origin.Person ⊐ Origin.Person.bot)
   )
+
+  val specExample = allow.except(
+    deny(Origin.Person ⊐ Origin.Person.bot and Purpose ⊒ Purpose.Sharing)
+      .except(Seq(
+        allow(Role ⊒ Role.Affiliate),
+        allow(Purpose ⊒ Purpose.Legal)
+      ))
+  )
 ```
 
 TODO
@@ -274,14 +282,6 @@ TODO
 * The real wifi-data is not included. Piotr is worried about including
   it in a demo since the data might be sensitive.
 
-* Very few things are actually tested.
-
-* TCBeval and context label integration not done.
-
 * The upper bound and lower bound tracking at the same time is not tested.
-
-* The use of LIO is not convenient.
-
-  * Could use things like foldM, mapM, etc.
 
 * The use of spark is not yet done.

@@ -7,17 +7,21 @@ import scala.collection.immutable.{Set=>SSet}
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
-case class Selector[L](val select: DemoLabel => L) {
+case class Selector[L](val select: DemoLabel => L, val s: String) {
   def apply(l: DemoLabel): L = select(l)
+  override def toString = s
 }
 
 case class Condition[L](val cond: L => Boolean) {
   def apply(l: L): Boolean = cond(l)
 
-  def and(that: Condition[L]): Condition[L] = new Condition[L](
-    l => apply(l) && that.apply(l)
-  ) {
-    override def toString: String = this.toString + " AND " + that.toString
+  def and(that: Condition[L]): Condition[L] = {
+    val temp = this
+    new Condition[L](
+      l => apply(l) && that.apply(l)
+    ) {
+      override def toString: String = temp.toString + " AND " + that.toString
+    }
   }
 }
 
@@ -42,6 +46,7 @@ class DemoLabel(
       Role.T,
       DemoLabel]
     with Label[DemoLabel]
+    with Serializable
 
 object DemoLabel {
   type T = DemoLabel
@@ -78,7 +83,7 @@ object DemoLabel {
   }
 }
 
-object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4) {
+object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4, "Purpose") {
   type T = USet[CoreTypes.Purpose]
 
   object Nothing extends NoneSet
@@ -94,7 +99,7 @@ object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4) {
   def apply(p: CoreTypes.Purpose): T = ThisSet(Seq(p).toSet)
 }
 
-object Role extends Selector[USet[CoreTypes.Role]](_._5) {
+object Role extends Selector[USet[CoreTypes.Role]](_._5, "Role") {
   type T = USet[CoreTypes.Role]
 
   object Nothing extends NoneSet
@@ -110,7 +115,7 @@ object Role extends Selector[USet[CoreTypes.Role]](_._5) {
 
 object Origin {
   type Person = USet[CoreTypes.Person]
-  object Person extends Selector[Person](_._1) {
+  object Person extends Selector[Person](_._1, "Person") {
     type T = Person
     val top: Person = AllSet()
     val bot: Person = NoneSet()
@@ -118,7 +123,7 @@ object Origin {
   }
 
   sealed abstract class Time extends Label[Time]
-  object Time extends Selector[Time](_._3) {
+  object Time extends Selector[Time](_._3, "Time") {
     import CoreTypes.Implicits
     type T = Time
 
@@ -197,7 +202,7 @@ object Origin {
   }
 
   type Location = USet[CoreTypes.Location]
-  object Location extends Selector[Location](_._2) {
+  object Location extends Selector[Location](_._2, "Location") {
     type T = Location
 
     object Nowhere extends NoneSet
