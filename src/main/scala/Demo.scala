@@ -64,8 +64,10 @@ object Demo extends App {
   //    println(row)
   //  }
 
+
   val publicRooms: Origin.Location =
     CoreTypes.Location("100")
+
 
   val allowPublicRooms = Legalese
     .allow(Origin.Location ⊑ publicRooms)
@@ -84,5 +86,7 @@ object Demo extends App {
       ))
   )
 
+
   println(specExample.toString)
+
 }

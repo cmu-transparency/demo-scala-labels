@@ -53,8 +53,21 @@ object Data {
     oos.close
   }
 
-  val labelingContext: State =
-    new State(DemoLabel.bot, Policy.AllowAll)
+//  val labelingState: State =
+//    new State(DemoLabel.bot, Policy.AllowAll)
+
+
+  import Policy._
+  import DemoPolicy._
+  import DemoLabel.Implicits._
+  import Legalese._
+  import DemoTypes._
+
+  val systemPolicy = deny.except(Seq(
+    allow(Role ⊒ Role.Administrator and Purpose ⊒ Purpose.Storage)
+  ))
+
+  val simulatedRole = Role.Administrator
 
   object Users {
     import DemoLabel.Implicits._
@@ -67,12 +80,16 @@ object Data {
       CoreTypes.Person(1005, "Helen Nissenbaum")
     )
 
+    write("users.serialized", raw_users.map { u =>
+      (u.device_id, Core.label(u: DemoLabel, u).TCBeval(
+        (Purpose.Storage: DemoLabel) ⊔ simulatedRole,
+        systemPolicy
+      ))
+    }.toMap)
+
     val users: Map[Int, Labeled[L, CoreTypes.Person]] =
-      loadOrMake("users.serialized") {
-      raw_users.map { u =>
-        (u.device_id, Core.label(u: DemoLabel, u).evalLIO(labelingContext))
-      }.toMap
-      }
+      load("users.serialized")
+
   }
 
   object Locations {
@@ -106,7 +123,9 @@ object Data {
     )
 
     val sensors: Map[Int, Labeled[L, CoreTypes.Sensor]] = raw_sensors.map { s =>
-      (s.sensor_id, Core.label(s.location: DemoLabel, s).evalLIO(labelingContext))
+      (s.sensor_id, Core.label(s.location: DemoLabel, s)
+        .TCBeval(
+          (Purpose.Storage: DemoLabel) ⊔ simulatedRole, systemPolicy))
     }.toMap
 
   }
@@ -115,7 +134,9 @@ object Data {
     /* Read the time and label it with a time origin. */
     def time: Labeled[L, CoreTypes.Time] = {
       val now = CoreTypes.Time(Timestamp.from(Instant.now()))
-      Core.label(now: DemoLabel, now).evalLIO(labelingContext)
+      Core.label(now: DemoLabel, now)
+        .TCBeval(
+          (Purpose.Storage: DemoLabel) ⊔ simulatedRole, systemPolicy)
     }
   }
 }

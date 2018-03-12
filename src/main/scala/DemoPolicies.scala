@@ -4,7 +4,7 @@ import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
 object DemoPolicy {
-  type L = DemoLabel.T
+  type L = DemoLabel
   type T = Policy[L]
 
   implicit def policyOfCond[L <: Label[L]](

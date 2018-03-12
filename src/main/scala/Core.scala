@@ -21,11 +21,14 @@ object Core {
   sealed case class State[L <: Label[L]]
     (val pc: L, val policy: Policy[L]) {
 
-    def canLabel(l: L): Boolean = {
-      val ret = pc <= l
-      //println(pc.toString + " ≤ " + l.toString + " = " + ret.toString)
-      ret
-    }
+    def canLabel(l: L): Boolean = //true
+      {
+        policy(pc.join(l)) match {
+          case Some(true) => true
+          case _ => false
+            //println(pc.toString + " ≤ " + l.toString + " = " + ret.toString)
+        }
+      }
 
     override def toString = pc.toString + " under " + policy.toString
   }
@@ -54,6 +57,9 @@ object Core {
 
     def runLIO(s: State[L]): (T, State[L]) = Core.runLIO(this, s)
     def evalLIO(s: State[L]): T = Core.evalLIO(this, s)
+
+    def TCBeval(context: L, policy: Policy[L]): T =
+      Core.evalLIO(this, new State(context, policy))
   }
 
   object LIO {
@@ -113,7 +119,6 @@ object Core {
 
       def tailRecM[T, S](a : T)(f : T => LIO[L, Either[T, S]]) : LIO[L, S] =
         LIO(s => LIO.tailRecM(a, f, s))
-
   }
 
   /** Example showing how to use the Monad instance of LIO */

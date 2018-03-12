@@ -7,7 +7,10 @@ import scala.collection.immutable.{Set=>SSet}
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
-case class Selector[L](val select: DemoLabel => L, val s: String) {
+case class Selector[L](
+  val select: DemoLabel => L,
+  val s: String
+) {
   def apply(l: DemoLabel): L = select(l)
   override def toString = s
 }
@@ -30,23 +33,43 @@ class DemoLabel(
   val location: Origin.Location.T = Origin.Location.bot,
   val time: Origin.Time.T = Origin.Time.bot,
   val purpose: Purpose.T = Purpose.bot,
-  val role: Role.T = Role.bot
-)
-    extends LabelTuple5[
+  val role: Role.T = Role.bot)
+    extends Tuple5[
       Origin.Person.T,
       Origin.Location.T,
       Origin.Time.T,
       Purpose.T,
       Role.T](person, location, time, purpose, role)
-    with LabelTuple5Functions[
+/*    with LabelTuple5Functions[
       Origin.Person.T,
       Origin.Location.T,
       Origin.Time.T,
       Purpose.T,
       Role.T,
-      DemoLabel]
+      DemoLabel]*/
     with Label[DemoLabel]
-    with Serializable
+    with Serializable { 
+
+  type T = DemoLabel
+
+  def join(that: T): T = new DemoLabel(
+    this._1.join(that._1),
+    this._2.join(that._2),
+    this._3.join(that._3),
+    this._4.join(that._4),
+    this._5.join(that._5)
+  )
+
+  def meet(that: T): T = new DemoLabel(
+    this._1.meet(that._1),
+    this._2.meet(that._2),
+    this._3.meet(that._3),
+    this._4.meet(that._4),
+    this._5.meet(that._5)
+  )
+
+  //def this(r: Role.T) = this(role = r)
+}
 
 object DemoLabel {
   type T = DemoLabel
@@ -61,7 +84,6 @@ object DemoLabel {
   object Implicits {
     implicit def personToPersonLabel(p: CoreTypes.Person):
         Origin.Person = Origin.Person(p)
-
     implicit def personToDemoLabel(p: CoreTypes.Person):
         DemoLabel = new DemoLabel(person = p)
 
@@ -79,6 +101,15 @@ object DemoLabel {
         Purpose.T = Purpose(p)
     implicit def purposeToDemoLabel(p: CoreTypes.Purpose):
         DemoLabel = new DemoLabel(purpose = p)
+    implicit def purposeLabelToDemoLabel(p: Purpose.T):
+        DemoLabel = new DemoLabel(purpose = p)
+
+    implicit def roleToRoleLabel(p: CoreTypes.Role):
+        Role.T = Role(p)
+    implicit def roleToDemoLabel(p: CoreTypes.Role):
+        DemoLabel = new DemoLabel(role = p)
+    implicit def roleLabelToDemoLabel(p: Role.T):
+        DemoLabel = new DemoLabel(role = p)
 
   }
 }
@@ -95,6 +126,7 @@ object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4, "Purpose") {
   val Legal = Purpose(CoreTypes.Purpose("Legal"))
   val ClimateControl = Purpose(CoreTypes.Purpose("ClimateControl"))
   val Sharing = Purpose(CoreTypes.Purpose("Sharing"))
+  val Storage = Purpose(CoreTypes.Purpose("Storage"))
 
   def apply(p: CoreTypes.Purpose): T = ThisSet(Seq(p).toSet)
 }
@@ -109,6 +141,7 @@ object Role extends Selector[USet[CoreTypes.Role]](_._5, "Role") {
   val top: T = Everything.asInstanceOf[T]
 
   val Affiliate = Role(CoreTypes.Role("Affiliate"))
+  val Administrator = Role(CoreTypes.Role("Administrator"))
 
   def apply(p: CoreTypes.Role): T = ThisSet(Seq(p).toSet)
 }

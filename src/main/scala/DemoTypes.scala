@@ -42,11 +42,17 @@ object CoreTypes {
   }
    */
 
-  case class Purpose(val name: String) extends Serializable
-  case class Role(val name: String) extends Serializable
-  case class Location(val name: String) extends Serializable
-  case class Person(val device_id: Int, val name: String) extends Serializable
-  case class Sensor(val sensor_id: Int, val location: Location) extends Serializable
+  case class Person(val device_id: Int, val name: String)
+      extends Serializable
+  case class Location(val name: String)
+      extends Serializable
+  case class Purpose(val name: String)
+      extends Serializable
+  case class Role(val name: String)
+      extends Serializable
+  case class Sensor(val sensor_id: Int, val location: Location)
+      extends Serializable
+
 }
 
 import CoreTypes._
@@ -60,22 +66,14 @@ object DemoTypes {
   type LIO[T] = Core.LIO[L, T]
   type State = Core.State[L]
 
-//  implicit def liom[T](lio: LIO[T]): Monad[LIO] = new Monad {
-
-//  }
-
   sealed abstract class Purpose extends Serializable
   case object Policing extends Purpose
   case object Auditing extends Purpose
   case object ClimateControl extends Purpose
 
-  /*
-    type PersonInfoRow = (DeviceId, Labeled[Person, Origin.Person])
-   */
-
-    type LocalizedRow = (
-      Person,
-      Time,
-      Location
-    ) // labeled will by applied to the whole thing
-  }
+  type LocalizedRow = (
+    Person,
+    Time,
+    Location
+  ) // labeled will by applied to the whole thing
+}
