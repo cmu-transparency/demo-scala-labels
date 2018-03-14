@@ -12,131 +12,83 @@ import edu.cmu.spf.lio._
 import SparkUtil._
 
 object Data {
-  import DemoTypes._
+  import Aliases._
   import DemoLabel.Implicits._
-
-  import java.io._
-  import java.nio.file.{Paths, Files}
-
-  /* https://gist.github.com/ramn/5566596 */
-  class ObjectInputStreamWithCustomClassLoader(
-    fileInputStream: FileInputStream
-  ) extends ObjectInputStream(fileInputStream) {
-    override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
-      try { Class.forName(desc.getName, false, getClass.getClassLoader) }
-      catch { case ex: ClassNotFoundException => super.resolveClass(desc) }
-    }
-  }
-
-  def loadOrMake[T](filename: String)(f: => T): T = {
-    if (Files.exists(Paths.get(filename))) {
-      println(s"$filename exists, loading")
-      load(filename)
-    } else {
-      println(s"$filename does not exist, computing")
-      val temp:T = f
-      write(filename, temp)
-      temp
-    }
-  }
-
-  def load[T](filename: String): T = {
-    val ois = new ObjectInputStreamWithCustomClassLoader(new FileInputStream(filename))
-    val e = ois.readObject.asInstanceOf[T]
-    ois.close
-    e
-  }
-
-  def write[T](filename: String, o: T): Unit = {
-    val oos = new ObjectOutputStream(new FileOutputStream(filename))
-    oos.writeObject(o)
-    oos.close
-  }
-
-//  val labelingState: State =
-//    new State(DemoLabel.bot, Policy.AllowAll)
-
-
-  import Policy._
   import DemoPolicy._
-  import DemoLabel.Implicits._
+  import Policy._
   import Legalese._
-  import DemoTypes._
+  import SerialUtil._
 
-  val systemPolicy = deny.except(Seq(
-    allow(Role ⊒ Role.Administrator and Purpose ⊒ Purpose.Storage)
-  ))
+  private object TCB_PopulateData {
+    def ping: Unit = ()
 
-  val simulatedRole = Role.Administrator
+    val dataIngressPolicy = deny.except(Seq(
+      allow(Role ⊒ Role.Administrator
+        and Purpose ⊒ Purpose.Storage)
+    ))
+    val simulatedContext: DL = (Purpose.Storage: DL) ⊔ Role.Administrator
 
-  object Users {
-    import DemoLabel.Implicits._
-
-    val raw_users: Seq[CoreTypes.Person] = Seq(
-      CoreTypes.Person(1001, "Piotr Mardziel"),
-      CoreTypes.Person(1002, "Anupam Datta"),
-      CoreTypes.Person(1003, "Michael Tschantz"),
-      CoreTypes.Person(1004, "Sebastian Benthall"),
-      CoreTypes.Person(1005, "Helen Nissenbaum")
+    val rawUsers: Seq[DT.Person] = Seq(
+      DT.Person(1001, "Piotr Mardziel"),
+      DT.Person(1002, "Anupam Datta"),
+      DT.Person(1003, "Michael Tschantz"),
+      DT.Person(1004, "Sebastian Benthall"),
+      DT.Person(1005, "Helen Nissenbaum")
     )
+    val labeledUsers: Map[DT.Id, Ld[DT.Person]] =
+      rawUsers.map { u =>
+        (u.device_id, Core.label(u: DL, u).TCBeval(
+          simulatedContext,
+          dataIngressPolicy
+        )) }.toMap
+    write("users.data", labeledUsers)
 
-    write("users.serialized", raw_users.map { u =>
-      (u.device_id, Core.label(u: DemoLabel, u).TCBeval(
-        (Purpose.Storage: DemoLabel) ⊔ simulatedRole,
-        systemPolicy
-      ))
-    }.toMap)
-
-    val users: Map[Int, Labeled[L, CoreTypes.Person]] =
-      load("users.serialized")
-
-  }
-
-  object Locations {
-    val raw_locations: Seq[CoreTypes.Location] = Seq(
-      CoreTypes.Location("101"),
-      CoreTypes.Location("102"),
-      CoreTypes.Location("103"),
-      CoreTypes.Location("103")
+    val rawLocations: Seq[DT.Location] = Seq(
+      DT.Location(101, "Room 101"),
+      DT.Location(102, "Room 102"),
+      DT.Location(103, "Room 103"),
+      DT.Location(104, "Room 104")
     )
-  }
+    write("locations.data", rawLocations)
 
-  case class RawReading(val sensor_id: Int, device_id: Int)
-  object Readings {
-    val raw_readings: Seq[RawReading] = Seq(
-      RawReading(1, 1001),
-      RawReading(2, 1002),
-      RawReading(3, 1003),
-      RawReading(4, 1004),
-      RawReading(5, 1005)
+    val rawReadings: Seq[DT.SensorReading] = Seq(
+      DT.SensorReading(1, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(2, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(3, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(4, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(5, 1.0, Timestamp.from(Instant.now()))
     )
-  }
+    write("readings.data", rawReadings)
 
-  object Sensors {
-    /* Sensor information including labeled location, labeled sensor
-     * type.*/
-
-    val raw_sensors: Seq[CoreTypes.Sensor] = Seq(
-      CoreTypes.Sensor(1, CoreTypes.Location("101")),
-      CoreTypes.Sensor(2, CoreTypes.Location("102")),
-      CoreTypes.Sensor(3, CoreTypes.Location("103"))
+    val rawSensors: Seq[DT.Sensor] = Seq(
+      DT.Sensor(1, rawLocations(0)),
+      DT.Sensor(2, rawLocations(1)),
+      DT.Sensor(3, rawLocations(2))
     )
+    val labeledSensors: Map[DT.Id, Ld[DT.Sensor]] =
+      rawSensors.map { s =>
+        (s.sensor_id, Core.label(s.location: DL, s)
+          .TCBeval(simulatedContext, dataIngressPolicy))
+      }.toMap
+    write("sensors.data", labeledSensors)
 
-    val sensors: Map[Int, Labeled[L, CoreTypes.Sensor]] = raw_sensors.map { s =>
-      (s.sensor_id, Core.label(s.location: DemoLabel, s)
-        .TCBeval(
-          (Purpose.Storage: DemoLabel) ⊔ simulatedRole, systemPolicy))
-    }.toMap
-
-  }
-
-  object Clock {
-    /* Read the time and label it with a time origin. */
-    def time: Labeled[L, CoreTypes.Time] = {
-      val now = CoreTypes.Time(Timestamp.from(Instant.now()))
-      Core.label(now: DemoLabel, now)
-        .TCBeval(
-          (Purpose.Storage: DemoLabel) ⊔ simulatedRole, systemPolicy)
+    def time: Ld[DT.Time] = {
+      val now = DT.Time(Timestamp.from(Instant.now()))
+      Core.label(now: DL, now)
+        .TCBeval(simulatedContext, dataIngressPolicy)
     }
   }
+
+  TCB_PopulateData // make sure the data files are created
+
+  def time: Ld[DT.Time] = TCB_PopulateData.time
+
+  import org.apache.spark.rdd.RDD
+
+  lazy val users:     Map[DT.Id, Ld[DT.Person]] = load("users.data")
+  lazy val locations: Seq[DT.Location]          = load("locations.data")
+  //lazy val readings:  Seq[DT.SensorReading]     = load("readings.data")
+  lazy val readings: RDD[DT.SensorReading] = SparkUtil.rdd(load("readings.data"))
+  lazy val sensors:   Map[DT.Id, Ld[DT.Sensor]] = load("sensors.data")
+
 }

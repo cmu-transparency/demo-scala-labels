@@ -278,3 +278,24 @@ case class ThisSet[T]
   }
  */
 }
+
+case class Selector[DL, L](
+  val select: DL => L,
+  val s: String
+) {
+  def apply(l: DL): L = select(l)
+  override def toString = s
+}
+
+case class Condition[L](val cond: L => Boolean) {
+  def apply(l: L): Boolean = cond(l)
+
+  def and(that: Condition[L]): Condition[L] = {
+    val temp = this
+    new Condition[L](
+      l => apply(l) && that.apply(l)
+    ) {
+      override def toString: String = temp.toString + " AND " + that.toString
+    }
+  }
+}

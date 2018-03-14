@@ -7,12 +7,6 @@ sealed abstract class HiLow
     with Serializable
 
 object HiLow {
-  case object Hi extends HiLow {
-    def join(l2: HiLow): HiLow = this
-    def meet(l2: HiLow): HiLow = l2
-  }
-  case object Low extends HiLow {
-    def join(l2: HiLow): HiLow = l2
-    def meet(l2: HiLow): HiLow = this
-  }
+  case object Hi  extends HiLow with DefaultTop[HiLow]
+  case object Low extends HiLow with DefaultBottom [HiLow]
 }

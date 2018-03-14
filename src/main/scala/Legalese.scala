@@ -1,7 +1,7 @@
-package edu.cmu.spf.lio.demo
+package edu.cmu.spf.lio
 
 import edu.cmu.spf.lio._
-import edu.cmu.spf.lio.demo.System._
+//import edu.cmu.spf.lio.demo.System._
 
 object Legalese {
   def appliesToAll[L <: Label[L]]: Condition[L] = new Condition[L](_ => true) {

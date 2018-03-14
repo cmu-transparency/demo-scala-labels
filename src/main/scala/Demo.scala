@@ -13,13 +13,15 @@ object Demo extends App {
   //println(StringUtil.prettyPrint(Data.Users.users))
 
   import Policy._
+  import Legalese._
+
   import DemoPolicy._
   import DemoLabel.Implicits._
-  import Legalese._
-  import DemoTypes._
+  import Aliases._
+
   import System.Aggregator._
 
-  Data.Users.users.foreach { case (k, v) =>
+  Data.users.foreach { case (k, v) =>
     println(s"$k -> $v")
   }
 
@@ -28,11 +30,11 @@ object Demo extends App {
   }
 
   object HVAC {
-    val readings = Data.Readings.raw_readings
+    val readings = Data.readings
 
     /* Compute activation of the HVAC system for each room. HVAC is
      * activated if there is at least one person in the room. */
-    val activity: Map[CoreTypes.Location, LIO[Boolean]] =
+    val activity: Map[DemoTypes.Location, LIO[Boolean]] =
       System.Aggregator.aggregate(readings).mapValues { occupancyM =>
         for {
           occupancy <- occupancyM
@@ -66,8 +68,7 @@ object Demo extends App {
 
 
   val publicRooms: Origin.Location =
-    CoreTypes.Location("100")
-
+    DemoTypes.Location(100, "Room 100")
 
   val allowPublicRooms = Legalese
     .allow(Origin.Location ⊑ publicRooms)

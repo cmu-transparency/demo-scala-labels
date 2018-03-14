@@ -19,6 +19,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.ml.{Pipeline, PipelineStage, Transformer}
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 
+import scala.reflect.ClassTag
+
 object SparkUtil {
   Logger.getLogger("Remoting").setLevel(Level.ERROR)
   Logger.getLogger("org").setLevel(Level.ERROR)
@@ -37,6 +39,8 @@ object SparkUtil {
     .config("spark.executor.memory", "8g")
     .appName("SparkUtil")
     .getOrCreate()
+
+  val sc = sql.sparkContext
 
   import org.apache.spark.SparkConf
   import org.apache.spark.rdd.RDD
@@ -72,6 +76,8 @@ object SparkUtil {
       .option("delimiter", delimiter)
       .save(file)
   }
+
+  def rdd[T: ClassTag](its: Seq[T]): RDD[T] = sc.parallelize(its)
 
   /* this doesn't work, there is no SetType, only ArrayType */
   class TokenizerSet(val sep: String = ",", override val uid: String)
@@ -302,6 +308,48 @@ object StringUtil {
           case _ => a.toString
         }
       }
-
 }
 
+object SerialUtil {
+  import java.io._
+  import java.nio.file.{Paths, Files}
+
+  /* https://gist.github.com/ramn/5566596 */
+  class ObjectInputStreamWithCustomClassLoader(
+    fileInputStream: FileInputStream
+  ) extends ObjectInputStream(fileInputStream) {
+    override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
+      try { Class.forName(desc.getName, false, getClass.getClassLoader) }
+      catch { case ex: ClassNotFoundException => super.resolveClass(desc) }
+    }
+  }
+
+  def loadOrMake[T](filename: String)(f: => T): T = {
+    if (Files.exists(Paths.get(filename))) {
+      println(s"$filename exists, loading")
+      load(filename)
+    } else {
+      println(s"$filename does not exist, computing")
+      val temp:T = f
+      write(filename, temp)
+      temp
+    }
+  }
+
+  def load[T](filename: String): T = {
+    val ois = new ObjectInputStreamWithCustomClassLoader(
+      new FileInputStream(filename)
+    )
+    val e = ois.readObject.asInstanceOf[T]
+    ois.close
+    e
+  }
+
+  def write[T](filename: String, o: T): Unit = {
+    val oos = new ObjectOutputStream(new FileOutputStream(filename))
+    oos.writeObject(o)
+    oos.close
+  }
+
+
+}

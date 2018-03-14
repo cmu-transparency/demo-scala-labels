@@ -7,52 +7,31 @@ import scala.collection.immutable.{Set=>SSet}
 import edu.cmu.spf.lio._
 import edu.cmu.spf.lio.demo.System._
 
-case class Selector[L](
-  val select: DemoLabel => L,
-  val s: String
-) {
-  def apply(l: DemoLabel): L = select(l)
-  override def toString = s
-}
-
-case class Condition[L](val cond: L => Boolean) {
-  def apply(l: L): Boolean = cond(l)
-
-  def and(that: Condition[L]): Condition[L] = {
-    val temp = this
-    new Condition[L](
-      l => apply(l) && that.apply(l)
-    ) {
-      override def toString: String = temp.toString + " AND " + that.toString
-    }
-  }
-}
+import Aliases._
 
 class DemoLabel(
-  val person: Origin.Person.T = Origin.Person.bot,
-  val location: Origin.Location.T = Origin.Location.bot,
-  val time: Origin.Time.T = Origin.Time.bot,
-  val purpose: Purpose.T = Purpose.bot,
-  val role: Role.T = Role.bot)
+  val person: Origin.Person = Origin.Person.bot,
+  val location: Origin.Location = Origin.Location.bot,
+  val time: Origin.Time = Origin.Time.bot,
+  val purpose: Purpose = Purpose.bot,
+  val role: Role = Role.bot)
     extends Tuple5[
-      Origin.Person.T,
-      Origin.Location.T,
-      Origin.Time.T,
-      Purpose.T,
-      Role.T](person, location, time, purpose, role)
+      Origin.Person,
+      Origin.Location,
+      Origin.Time,
+      Purpose,
+      Role](person, location, time, purpose, role)
 /*    with LabelTuple5Functions[
       Origin.Person.T,
       Origin.Location.T,
       Origin.Time.T,
       Purpose.T,
       Role.T,
-      DemoLabel]*/
+      L]*/
     with Label[DemoLabel]
-    with Serializable { 
+    with Serializable {
 
-  type T = DemoLabel
-
-  def join(that: T): T = new DemoLabel(
+  def join(that: DemoLabel): DemoLabel = new DemoLabel(
     this._1.join(that._1),
     this._2.join(that._2),
     this._3.join(that._3),
@@ -60,7 +39,7 @@ class DemoLabel(
     this._5.join(that._5)
   )
 
-  def meet(that: T): T = new DemoLabel(
+  def meet(that: DemoLabel): DemoLabel = new DemoLabel(
     this._1.meet(that._1),
     this._2.meet(that._2),
     this._3.meet(that._3),
@@ -72,9 +51,7 @@ class DemoLabel(
 }
 
 object DemoLabel {
-  type T = DemoLabel
-
-  val bot: T = new T(
+  val bot: DL = new DL(
     Origin.Person.bot,
     Origin.Location.bot,
     Origin.Time.bot,
@@ -82,40 +59,38 @@ object DemoLabel {
     Role.bot)
 
   object Implicits {
-    implicit def personToPersonLabel(p: CoreTypes.Person):
+    implicit def personToPersonLabel(p: DT.Person):
         Origin.Person = Origin.Person(p)
-    implicit def personToDemoLabel(p: CoreTypes.Person):
-        DemoLabel = new DemoLabel(person = p)
+    implicit def personToL(p: DT.Person): DL = new DL(person = p)
 
-    implicit def timeToTimeLabel(t: CoreTypes.Time):
-        Origin.Time = Origin.Time(t)
-    implicit def timeToDemoLabel(t: CoreTypes.Time):
-        DemoLabel = new DemoLabel(time = t)
+    implicit def timeToTimeLabel(t: DT.Time): Origin.Time = Origin.Time(t)
+    implicit def timeToL(t: DT.Time):
+        DL = new DL(time = t)
 
-    implicit def locationToLocationLabel(l: CoreTypes.Location):
+    implicit def locationToLocationLabel(l: DT.Location):
         Origin.Location.T = Origin.Location(l)
-    implicit def locationToDemoLabel(l: CoreTypes.Location):
-        DemoLabel = new DemoLabel(location = l)
+    implicit def locationToL(l: DT.Location):
+        DL = new DL(location = l)
 
-    implicit def purposeToPurposeLabel(p: CoreTypes.Purpose):
+    implicit def purposeToPurposeLabel(p: DT.Purpose):
         Purpose.T = Purpose(p)
-    implicit def purposeToDemoLabel(p: CoreTypes.Purpose):
-        DemoLabel = new DemoLabel(purpose = p)
-    implicit def purposeLabelToDemoLabel(p: Purpose.T):
-        DemoLabel = new DemoLabel(purpose = p)
+    implicit def purposeToL(p: DT.Purpose):
+        DL = new DL(purpose = p)
+    implicit def purposeLabelToL(p: Purpose.T):
+        DL = new DL(purpose = p)
 
-    implicit def roleToRoleLabel(p: CoreTypes.Role):
+    implicit def roleToRoleLabel(p: DT.Role):
         Role.T = Role(p)
-    implicit def roleToDemoLabel(p: CoreTypes.Role):
-        DemoLabel = new DemoLabel(role = p)
-    implicit def roleLabelToDemoLabel(p: Role.T):
-        DemoLabel = new DemoLabel(role = p)
+    implicit def roleToL(p: DT.Role):
+        DL = new DL(role = p)
+    implicit def roleLabelToL(p: Role.T):
+        DL = new DL(role = p)
 
   }
 }
 
-object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4, "Purpose") {
-  type T = USet[CoreTypes.Purpose]
+object Purpose extends Selector[DL, USet[DT.Purpose]](_._4, "Purpose") {
+  type T = USet[DT.Purpose]
 
   object Nothing extends NoneSet
   object Everything extends AllSet
@@ -123,16 +98,16 @@ object Purpose extends Selector[USet[CoreTypes.Purpose]](_._4, "Purpose") {
   val bot: T = Nothing.asInstanceOf[T]
   val top: T = Everything.asInstanceOf[T]
 
-  val Legal = Purpose(CoreTypes.Purpose("Legal"))
-  val ClimateControl = Purpose(CoreTypes.Purpose("ClimateControl"))
-  val Sharing = Purpose(CoreTypes.Purpose("Sharing"))
-  val Storage = Purpose(CoreTypes.Purpose("Storage"))
+  val Legal = Purpose(DT.Purpose("Legal"))
+  val ClimateControl = Purpose(DT.Purpose("ClimateControl"))
+  val Sharing = Purpose(DT.Purpose("Sharing"))
+  val Storage = Purpose(DT.Purpose("Storage"))
 
-  def apply(p: CoreTypes.Purpose): T = ThisSet(Seq(p).toSet)
+  def apply(p: DT.Purpose): T = ThisSet(Seq(p).toSet)
 }
 
-object Role extends Selector[USet[CoreTypes.Role]](_._5, "Role") {
-  type T = USet[CoreTypes.Role]
+object Role extends Selector[DL, USet[DT.Role]](_._5, "Role") {
+  type T = USet[DT.Role]
 
   object Nothing extends NoneSet
   object Everything extends AllSet
@@ -140,24 +115,24 @@ object Role extends Selector[USet[CoreTypes.Role]](_._5, "Role") {
   val bot: T = Nothing.asInstanceOf[T]
   val top: T = Everything.asInstanceOf[T]
 
-  val Affiliate = Role(CoreTypes.Role("Affiliate"))
-  val Administrator = Role(CoreTypes.Role("Administrator"))
+  val Affiliate = Role(DT.Role("Affiliate"))
+  val Administrator = Role(DT.Role("Administrator"))
 
-  def apply(p: CoreTypes.Role): T = ThisSet(Seq(p).toSet)
+  def apply(p: DT.Role): T = ThisSet(Seq(p).toSet)
 }
 
 object Origin {
-  type Person = USet[CoreTypes.Person]
-  object Person extends Selector[Person](_._1, "Person") {
+  type Person = USet[DT.Person]
+  object Person extends Selector[DL, Person](_._1, "Person") {
     type T = Person
     val top: Person = AllSet()
     val bot: Person = NoneSet()
-    def apply(p: CoreTypes.Person): Person = ThisSet(Seq(p).toSet)
+    def apply(p: DT.Person): Person = ThisSet(Seq(p).toSet)
   }
 
   sealed abstract class Time extends Label[Time]
-  object Time extends Selector[Time](_._3, "Time") {
-    import CoreTypes.Implicits
+  object Time extends Selector[DL, Time](_._3, "Time") {
+    import DT.Implicits
     type T = Time
 
     /* Time. Will be used to keep track of the temporal origin of data. */
@@ -167,9 +142,9 @@ object Origin {
     val top: Time = Always
     val bot: Time = Never
 
-    def apply(t: CoreTypes.Time): Time = AtTime(t)
+    def apply(t: DT.Time): Time = AtTime(t)
 
-    case class AtTime(at: CoreTypes.Time) extends Time {
+    case class AtTime(at: DT.Time) extends Time {
       def join(l2: Time): Time =
         l2 match {
           case Never => this
@@ -199,8 +174,8 @@ object Origin {
 
     /* Invariant: after <= before */
     case class Between(
-      after: CoreTypes.Time,
-      before: CoreTypes.Time
+      after: DT.Time,
+      before: DT.Time
     ) extends Time {
 
       def join(l2: Time): Time = {
@@ -234,8 +209,8 @@ object Origin {
     }
   }
 
-  type Location = USet[CoreTypes.Location]
-  object Location extends Selector[Location](_._2, "Location") {
+  type Location = USet[DT.Location]
+  object Location extends Selector[DL, Location](_._2, "Location") {
     type T = Location
 
     object Nowhere extends NoneSet
@@ -244,7 +219,7 @@ object Origin {
     val top: T = Everywhere.asInstanceOf[T]
     val bot: T = Nowhere.asInstanceOf[T]
 
-    def apply(l: CoreTypes.Location): T = ThisSet(Seq(l).toSet)
+    def apply(l: DT.Location): T = ThisSet(Seq(l).toSet)
 
   }
 }
