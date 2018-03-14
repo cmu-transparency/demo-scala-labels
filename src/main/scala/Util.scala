@@ -79,6 +79,8 @@ object SparkUtil {
 
   def rdd[T: ClassTag](its: Seq[T]): RDD[T] = sc.parallelize(its)
 
+  def shutdown: Unit = sc.stop
+
   /* this doesn't work, there is no SetType, only ArrayType */
   class TokenizerSet(val sep: String = ",", override val uid: String)
     extends UnaryTransformer[String, Set[String], TokenizerSet] {

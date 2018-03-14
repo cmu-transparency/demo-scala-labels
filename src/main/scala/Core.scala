@@ -17,6 +17,8 @@ import cats.mtl.implicits._
 
 import scala.annotation.tailrec
 
+import org.apache.spark.rdd.RDD
+
 object Core {
   sealed case class State[L <: Label[L]]
     (val pc: L, val policy: Policy[L]) {
@@ -32,6 +34,19 @@ object Core {
 
     override def toString = pc.toString + " under " + policy.toString
   }
+
+/* Labeled data comes with both a lower and upper bound on the label
+   that is attributed to it. */
+
+  private [lio] case class Labeled
+    [L <: Label[L], T <: Serializable]
+    (label: L, element: T)
+      extends Serializable {
+
+    override def toString: String = element.toString + "[" + label.toString + "]"
+
+  }
+
 
   private[lio] case class LIO[L <: Label[L], T] (f: State[L] => (T, State[L])) {
 
@@ -87,6 +102,7 @@ object Core {
       }
     )
 
+
     /* traversals */
     def foldM[L <: Label[L], F[_], A, B]
     (fa: F[A], b: B)
@@ -98,6 +114,42 @@ object Core {
       (fa: F[A])(f: A => LIO[L, Boolean])
       (implicit T: TraverseEmpty[F]): LIO[L, F[A]] =
       T.filterA[({type l[T] = LIO[L,T]})#l, A](fa)(f)
+
+    def mapRDD[L <: Label[L], A, B](it: RDD[A])(fab: A => LIO[L,B]):
+        RDD[LIO[L,B]] = it.map(fab)
+
+  }
+
+  implicit def numericForLIO[T: Numeric, L <: Label[L]] = 
+    new Numeric[LIO[L,T]] {
+      def fromInt(x: Int): LIO[L,T] =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+      def toDouble(x: LIO[L,T]): Double =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+      def toFloat(x: LIO[L,T]): Float =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+      def toInt(x: LIO[L,T]): Int =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+      def toLong(x: LIO[L,T]): Long =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+      def compare(x: LIO[L,T], y: LIO[L,T]): Int =
+        throw IFCException("only mapping operations available for Numeric[LIO[L,T]]")
+
+      def minus(x: LIO[L,T],y: LIO[L,T]): LIO[L,T] = for {
+        vx <- x
+        vy <- y
+      } yield implicitly[Numeric[T]].minus(vx,vy)
+      def negate(x: LIO[L,T]): LIO[L,T] = for {
+        vx <- x
+      } yield implicitly[Numeric[T]].negate(vx)
+      def plus(x: LIO[L,T],y: LIO[L,T]): LIO[L,T] = for {
+        vx <- x
+        vy <- y
+      } yield implicitly[Numeric[T]].plus(vx, vy)
+      def times(x: LIO[L,T],y: LIO[L,T]): LIO[L,T] = for {
+        vx <- x
+        vy <- y
+      } yield implicitly[Numeric[T]].times(vx, vy)
   }
 
   implicit def applicativeForLIO[L <: Label[L]]

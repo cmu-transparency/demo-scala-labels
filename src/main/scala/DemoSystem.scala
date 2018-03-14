@@ -6,6 +6,7 @@ import java.sql.Timestamp
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql._
+import org.apache.spark.rdd.RDD
 
 import edu.cmu.spf.lio._
 
@@ -55,26 +56,41 @@ object System {
   object Aggregator {
     import DT._
 
-    val sensors = Data.sensors
-    val readings = Data.readings
+    //val sensors = Data.sensors
+    //val readings = Data.readings
 
     /* Look up how many readings there are at a particular location. */
-    def occupancy(location: DT.Location): LIO[Int] = {
-      Core.LIO.foldM(readings.toList, 0) {
+    def occupancyCollect(
+      readings: RDD[DT.SensorReading],
+      location: DT.Location): LIO[Int] = {
+
+      Core.LIO.foldM(readings.collect.toList, 0) {
         case (tot, reading) => for {
           loc <- Locator.locate_sensor(reading.sensor_id)
           if loc == location
         } yield 1 + tot
       }
-     }
+    }
+
+
+    def occupancy(
+      readings: RDD[DT.SensorReading],
+      location: DT.Location): LIO[Int] = {
+
+      Core.LIO.mapRDD(readings) {
+        case reading => for {
+          loc <- Locator.locate_sensor(reading.sensor_id)
+        } yield if (loc == location) { 1 } else { 0 }
+      }.reduce(implicitly[Numeric[LIO[Int]]].plus)
+    }
 
     /* Produce an occupancy table for every location. */
-    def aggregate(readings: Seq[DT.SensorReading]):
+    def aggregate(readings: RDD[DT.SensorReading]):
         Map[DT.Location, LIO[Int]] =
 
       Data.locations
         .foldLeft(Map[DT.Location, LIO[Int]]()) {
-          case (m, loc) => m + (loc -> occupancy(loc))
+          case (m, loc) => m + (loc -> occupancy(readings, loc))
         }
   }
 }

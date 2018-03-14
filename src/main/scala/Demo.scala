@@ -25,7 +25,7 @@ object Demo extends App {
     println(s"$k -> $v")
   }
 
-  aggregate(readings).foreach { case (k, v) =>
+  aggregate(Data.readings).foreach { case (k, v) =>
     println(s"$k -> $v")
   }
 
@@ -90,4 +90,5 @@ object Demo extends App {
 
   println(specExample.toString)
 
+  SparkUtil.shutdown
 }

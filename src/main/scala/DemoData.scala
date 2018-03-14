@@ -52,18 +52,18 @@ object Data {
     write("locations.data", rawLocations)
 
     val rawReadings: Seq[DT.SensorReading] = Seq(
-      DT.SensorReading(1, 1.0, Timestamp.from(Instant.now())),
-      DT.SensorReading(2, 1.0, Timestamp.from(Instant.now())),
-      DT.SensorReading(3, 1.0, Timestamp.from(Instant.now())),
-      DT.SensorReading(4, 1.0, Timestamp.from(Instant.now())),
-      DT.SensorReading(5, 1.0, Timestamp.from(Instant.now()))
+      DT.SensorReading(2001, 1001, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(2002, 1002, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(2003, 1003, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(2001, 1004, 1.0, Timestamp.from(Instant.now())),
+      DT.SensorReading(2002, 1005, 1.0, Timestamp.from(Instant.now()))
     )
     write("readings.data", rawReadings)
 
     val rawSensors: Seq[DT.Sensor] = Seq(
-      DT.Sensor(1, rawLocations(0)),
-      DT.Sensor(2, rawLocations(1)),
-      DT.Sensor(3, rawLocations(2))
+      DT.Sensor(2001, rawLocations(0)),
+      DT.Sensor(2002, rawLocations(1)),
+      DT.Sensor(2003, rawLocations(2))
     )
     val labeledSensors: Map[DT.Id, Ld[DT.Sensor]] =
       rawSensors.map { s =>
@@ -87,8 +87,7 @@ object Data {
 
   lazy val users:     Map[DT.Id, Ld[DT.Person]] = load("users.data")
   lazy val locations: Seq[DT.Location]          = load("locations.data")
-  //lazy val readings:  Seq[DT.SensorReading]     = load("readings.data")
-  lazy val readings: RDD[DT.SensorReading] = SparkUtil.rdd(load("readings.data"))
+  lazy val readings:  RDD[DT.SensorReading]     = SparkUtil.rdd(load("readings.data"))
   lazy val sensors:   Map[DT.Id, Ld[DT.Sensor]] = load("sensors.data")
 
 }

@@ -9,10 +9,9 @@ import cats.Monad
 
 package object Aliases {
   type DL = DemoLabel
-  type Ld[T <: Serializable] = Labeled[DL, T]
+  type Ld[T <: Serializable] = Core.Labeled[DL, T]
   type LIO[T] = Core.LIO[DL, T]
   type State = Core.State[DL]
-
   val DT = DemoTypes
 
   type Purpose = Purpose.T
@@ -61,6 +60,7 @@ object DemoTypes {
 
   case class SensorReading(
     val sensor_id: Id,
+    val device_id: Id,
     val signal_strength: Signal,
     val timestamp: Time
   )
