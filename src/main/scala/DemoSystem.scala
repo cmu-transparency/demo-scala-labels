@@ -56,9 +56,6 @@ object System {
   object Aggregator {
     import DT._
 
-    //val sensors = Data.sensors
-    //val readings = Data.readings
-
     /* Look up how many readings there are at a particular location. */
     def occupancyCollect(
       readings: RDD[DT.SensorReading],

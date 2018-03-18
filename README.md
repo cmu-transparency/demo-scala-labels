@@ -1,9 +1,16 @@
 # Shallow Label Computations for Scala
 
 This library and accompanied examples demonstrate a system for label
-tracking within the Scala programming language as well as flow policy
-enforcement based on tracked labels. This document serves as an
-overview of the system and a description of the demonstration.
+tracking within the Scala programming language as well a fairly
+general policy enforcement system based on tracked labels. This
+document serves as an overview of the system and a description of the
+demonstration.
+
+This document relies on basic knowledge of Scala syntax. A brief
+overview can be found at [Scala Tour:
+Basics](https://docs.scala-lang.org/tour/basics.html). The label
+tracking described here is loosely based on the [Labeled IO (LIO)
+library](https://github.com/plsyssec/lio) for haskell.
 
 ## The basics
 
@@ -13,9 +20,9 @@ functionality is provided by a set of classes and methods implemented
 in standard Scala itself.
 
 Labels serve as the basis of the enforcement system. Labels are
-special bits of data attached to standard values (and computations)
-and accompany them throughout the execution of a program. A string
-labeled with label type `L`, is given a type `Labeled[L, String]`.
+security-relevant annotations that accompany data (and computations)
+throughout the execution of a program. A string labeled with label
+type `L`, is given a type `Labeled[L, String]`.
 
 ```scala
   val secret: Labeled[L, String] = ???
@@ -43,25 +50,25 @@ special method of the `LIO` monad.
    val actually_ready: Boolean = ready.TCBeval(...)
 ```
 
-Methods such as `TCBeval` and others starting with TCB refer to trusted
-invocations to be restricted to a trusted computing base (TCB). These
-methods must be used correctly in order to provide the protections of
-this system. The arguments to TCBeval include a policy to be
-discussed further in this document.
+Methods such as `TCBeval` and others starting with TCB refer to
+trusted invocations to be restricted to a trusted computing base
+(TCB). These methods must be used correctly in order to provide the
+protections of this system. The arguments to TCBeval include a context
+and a policy to be discussed further in this document.
 
 The significance of a label varies and can include any annotation
 relevant to an intended policy. The demonstration here includes labels
-to represent information about purpose and several origin annotations
-including person, location, and time.
+to represent contextual information such as purpose and role, and
+several origin annotations including person, location, and time.
 
 ```scala
    abstract class Purpose extends Label ...
+   abstract class Role extends Label ...
    
-   abstract class Origin extends Label ...
-   
-   abstract class Person extends Origin ...
-   abstract class Location extends Origin ...
-   abstract class Time extends Origin ...
+   abstract class Origin extends Label ...   
+     abstract class Person extends Origin ...
+     abstract class Location extends Origin ...
+     abstract class Time extends Origin ...
 ```
 
 ## Labels and approximations
@@ -72,7 +79,7 @@ annotated with different time instances need to indicate that the
 origin of the aggregate includes all of those time instances. Tracking
 distinct labels could become cumbersome if the number of such labels
 grows. For this reason, labels are designed with sound approximation
-in mind. 
+in mind.
 
 Labels form lattices with an approximate union operation (least upper
 bound, join, or ⊔) and an approximate intersection operation (greatest
@@ -152,12 +159,13 @@ policy does not allow for the release of the data. The additional
 annotations such as purpose of the given release.
 
 Policies are composed of a basic components which are just functions
-that, given a label of a computation, return true to indicate the
-release of that information is allowed.
+that, given a label of a computation, optionally return a boolean
+indicating whether the request is allowed or not (the return value of
+`None` indicates that the policy does not apply either way.
 
 ```scala
   trait Policy ... {
-    def apply(p: Label): Boolean = ???
+    def apply(p: Label): Option[Boolean]
   }
 ```
 
@@ -198,60 +206,41 @@ join operations noted earlier in this document.
 
 ### Label comparison policies
 
-The system provided a convenient way of writing policies that compare
-labels. These are written using a selector that access some part of a
-larger label, a comparison, and a label to compare to. In the demo,
-there are many components in the overall label (type `DemoLabel`),
-requiring selectors to pick out the necessary component.
+The system provided a convenient way (via various implicit definitions
+and implicit classes) of writing policies that compare labels. These
+are written using three components: a selector that access some part
+of a larger label, a label comparison, and a label to compare to. In
+the demo, there are many components in the overall label (type
+`DemoLabel`), requiring selectors to pick out the necessary component.
 
 ```scala
-implicit class LabelSelector(val select: DemoLabel => Label) {
-  def ⊑(sublabel: L): Policy[...] = ???
-}
+case class Selector[DL,L](val select: DL => L) ...
 ```
 
-Together with accessor methods to get at the components of labels, we
-can write simply `Origin.Time.BusinessHours ⊒ ATrue` to designate a
-policy describe above.
+Combined a selector, a condition, and a label we can write simply
+`Origin.Time.BusinessHours ⊒ ATrue` to designate a policy described
+above. `Origin.Time.BusinessHours` is a selector, `⊒` is a comparison,
+and `ATrue` is the right-hand side of the condition operation. Simple
+compound policies can be constructed using various operators such as
+```and```:
+
+```scala
+Origin.Person ⊐ Origin.Person.bot and Purpose ⊒ Purpose.Sharing
+```
 
 ### Compound Policies
 
 Base policies can be combined into larger compound policies that are
 more convenient at specifying a real-world policy. The tool for this
-provided is the Legalese policy that is composed of a set of positive
-policies and a set of negative policies, with the interpretation that
-the composed policy allows a release if at least one of the positives
-allows it, and none of the negatives do:
+provided is the Legalese policy. A Legalese policy is a single allow
+or deny condition followed by a sequence of exceptions of the opposing
+consequent. A Legalese policy allows a request if it is an allow
+policy for which the top-level condition holds, and none of the
+exceptions deny it.
+
+Several convenience implicits enabled a concise syntax for Legalese policies:
 
 ```scala
-class Legalese[...](
-  positives: Iterable[Policy[...]],
-  negatives: Iterable[Policy[...]]
-  ) {
-
-def apply(l: Label): Boolean =
-   positives.exists(_(l)) && negatives.forall(! _(l))
-```
-
-Such policies can be further composed, with positives and negatives
-themselves composed of further Legalese policies.
-
-# Example Uses
-
-```scala
-  val publicRooms: Origin.Location =
-      Location(Seq("100", "101", "102"))
-      // TODO: add this implicit
-
-  val allowPublicRooms = (new Legalese()
-    allow (Origin.Location ⊑ publicRooms)
-  )
-
-  val allowLocationForHVAC = (new Legalese()
-    allow (Purpose ⊒ Purpose.climate_control)
-    except (Origin.Person ⊐ Origin.Person.bot)
-  )
-
   val specExample = allow.except(
     deny(Origin.Person ⊐ Origin.Person.bot and Purpose ⊒ Purpose.Sharing)
       .except(Seq(
@@ -261,21 +250,22 @@ themselves composed of further Legalese policies.
   )
 ```
 
-TODO
+### 
 
 # Reference
 
-## Basic types, as defined for the demo in DemoTypes.
+## Basic types and aliases as defined  DemoTypes.
 
 * `Label` - label that tracks purpose, and three types of origin:
   person, location, time.
 
-* `Labeled[L, T]` - labeled data of type `T`
+* `DemoLabel` or alias `DL` - the complete label composed of various
+  sub-labels used in the demo.
 
-* `LIO[L, T]` - a label-manipulating computation that returns `T`
+* `Labeled[L, T]` or alias `Ld[T] = Ld[DL, T]` - labeled data of type `T`
 
-* `DemoLabel` - the complete label composed of various sub-labels used
-  in the demo.
+* `LIO[L, T]` or alias `LIO[T] = Core.LIO[DL, T]` - a
+  label-manipulating computation that returns `T`.
 
 # TODO
 
@@ -283,5 +273,3 @@ TODO
   it in a demo since the data might be sensitive.
 
 * The upper bound and lower bound tracking at the same time is not tested.
-
-* The use of spark is not yet done.
