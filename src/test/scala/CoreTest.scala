@@ -29,7 +29,6 @@ class CoreSpec extends FlatSpec {
     assert(Low === Low.meet(Hi))
   }
 
-  /*
   "labeling a password" should "return a labeled password" in {
     val secret = label[L, String](BoundedLabel[LBase](Hi), "password")
       .evalLIO(lowExec)
@@ -63,7 +62,7 @@ class CoreSpec extends FlatSpec {
     for {
       ns <- unlabel(nonsecret_labeled)
       ss <- unlabel(secret_labeled)
-      ls <- label(ns ++ ss)
+      ls <- label(ns + ss)
     } yield ls
 
   val combined_label = combiner.evalLIO(lowExec).label
@@ -76,7 +75,7 @@ class CoreSpec extends FlatSpec {
     for {
       ns <- unlabel(nonsecret_labeled)
       ss <- unlabel(nonsecret_labeled)
-      ls <- label(ns ++ ss)
+      ls <- label(ns + ss)
     } yield ls
 
   val combined_low_label = combiner_low.evalLIO(lowExec).label
@@ -84,5 +83,5 @@ class CoreSpec extends FlatSpec {
   "combining low and low" should "be labeled low" in {
     assert(BoundedLabel[LBase](Low) == combined_low_label)
   }
-   */
+
 }

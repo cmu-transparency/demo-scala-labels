@@ -64,12 +64,14 @@ case class Legalese[L <: Label[L]](
     val outs_app: Iterable[Boolean] =
       except.map{_(l)}.filter { ! _.isEmpty }.map{_.get}
 
-    (cond(l), outs_app.exists(a => a ^ isAllow)) match {
+    val temp = (cond(l), outs_app.exists(a => a ^ isAllow)) match {
       case (true, true) => Some(! isAllow)
       case (true, false) => Some(isAllow)
       case (false, false)
-         | (false,true) => None
+         | (false, true) => None
     }
+    //println(s"  $this($l) = $temp")
+    temp
   }
 
   def _when_allow[A](f: => A): A = if (isAllow) { f } else {

@@ -3,6 +3,8 @@ package edu.cmu.spf.lio.demo
 import java.time.Instant
 import java.sql.Timestamp
 
+import java.io.Serializable
+
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql._
@@ -55,11 +57,14 @@ object SmartBuilding {
         )) }.toMap
         write("users.data", labeledUsers)
 
+    val secretRoom = DT.Location(105, "Super Secret Room 105")
+
     val rawLocations: Seq[DT.Location] = Seq(
       DT.Location(101, "Room 101"),
       DT.Location(102, "Room 102"),
       DT.Location(103, "Room 103"),
-      DT.Location(104, "Room 104")
+      DT.Location(104, "Room 104"),
+      secretRoom
     )
     write("locations.data", rawLocations)
 
@@ -68,15 +73,16 @@ object SmartBuilding {
       DT.SensorReading(2002, 1002, 1.0, Timestamp.from(Instant.now())),
       DT.SensorReading(2003, 1003, 1.0, Timestamp.from(Instant.now())),
       DT.SensorReading(2001, 1004, 1.0, Timestamp.from(Instant.now())),
-      DT.SensorReading(2002, 1005, 1.0, Timestamp.from(Instant.now()))
+      DT.SensorReading(2005, 1005, 1.0, Timestamp.from(Instant.now()))
     )
     write("readings.data", rawReadings)
 
-    val rawSensors: Seq[DT.Sensor] = Seq(
+    val rawSensors: Array[DT.Sensor] = Array[DT.Sensor](
       DT.Sensor(2001, rawLocations(0)),
       DT.Sensor(2002, rawLocations(1)),
       DT.Sensor(2003, rawLocations(2)),
-      DT.Sensor(2004, rawLocations(3))
+      DT.Sensor(2004, rawLocations(3)),
+      DT.Sensor(2005, secretRoom)
     )
     val labeledSensors: Map[DT.Id, Ld[DT.Sensor]] =
       rawSensors.map { s =>
@@ -84,13 +90,17 @@ object SmartBuilding {
           .TCBeval(simulatedContext, dataIngressPolicy))
       }.toMap
     write("sensors.data", labeledSensors)
-/*    val labeledSensorsByLocation: Map[DT.Location, Ld[List[DT.Sensor]]] =
+
+    val labeledSensorsByLocation: Map[DT.Location, Ld[Array[DT.Sensor]]] =
       rawLocations.map { loc =>
-        val sensors: List[DT.Sensor] = rawSensors.toList.filter{_.location == loc}
-        (loc, (Core.label[DemoLabel, List[DT.Sensor]](loc: DemoLabel, sensors))
-          .TCBeval(simulatedContext, dataIngressPolicy))
-      }.toMap
-    write("sensorsByLocation.data", labeledSensorsByLocation)*/
+        val sensors: Array[DT.Sensor] =
+          rawSensors.filter{_.location == loc}.toArray.asInstanceOf[Array[DT.Sensor]]
+        val temp1 = label[DL with Label[DL], Array[DT.Sensor]](loc: DemoLabel, sensors)
+        val temp2 = temp1.TCBeval(simulatedContext, dataIngressPolicy)
+        (loc, temp2)
+      }.toMap[DT.Location, Ld[Array[DT.Sensor]]]
+
+    write("sensorsByLocation.data", labeledSensorsByLocation)
 
     def time: Ld[DT.Time] = {
       val now = DT.Time(Timestamp.from(Instant.now()))
@@ -103,8 +113,8 @@ object SmartBuilding {
     lazy val readings:  RDD[DT.SensorReading] =
       SparkUtil.rdd(load("readings.data"))
     lazy val sensors:   Map[DT.Id, Ld[DT.Sensor]] = load("sensors.data")
-//    lazy val sensorsByLocation: Map[DT.Location, Core.Labeled[DemoLabel, List[DemoTypes.Sensor]]] =
-//      load("sensorsByLocation.data")
+    lazy val sensorsByLocation: Map[DT.Location, Core.Labeled[DemoLabel, Array[DemoTypes.Sensor] with Serializable]] =
+      load("sensorsByLocation.data")
   }
 
   object Identifier {
@@ -160,30 +170,31 @@ object SmartBuilding {
         } yield if (loc == location) { 1: BigInt } else { 0: BigInt }
       }.reduce(implicitly[Numeric[LIO[BigInt]]].plus)
     }
-/*
+
     def occupancy_better(
       readings: RDD[DT.SensorReading],
       location: DT.Location): LIO[BigInt] = {
 
+      val sensorsLIO = Data.sensorsByLocation(location)
+
       Core.LIO.mapRDD[DL, DT.SensorReading, BigInt](readings) {
         reading: DT.SensorReading => for {
-          sensors: List[DT.Sensor] <- Core.unlabel[DL,List[DT.Sensor]](
-            Data.sensorsByLocation(location)
-          )
-        } yield sensors.length: BigInt
+          sensors: Array[DT.Sensor] <- unlabel(sensorsLIO)
+          temp = sensors.filter{s => s.sensor_id == reading.sensor_id}.length > 0 
+        } yield if (temp) { 1 } else { 0 }
       }.reduce(implicitly[Numeric[LIO[BigInt]]].plus(_,_))
     }
- */
+
     /* Produce an occupancy table for every location. */
     def aggregate(readings: RDD[DT.SensorReading]):
         Map[DT.Location, LIO[BigInt]] =
       Data.locations.foldLeft(Map[DT.Location, LIO[BigInt]]()) {
-        case (m, loc) => m + (loc -> occupancy(readings, loc))
+        case (m, loc) => m + (loc -> occupancy_better(readings, loc))
       }
   }
 }
 
-object Demo extends App {
+object SmartBuildingDemo extends App {
   import Policy._
   import Legalese._
   import DemoPolicy._
@@ -195,39 +206,60 @@ object Demo extends App {
   val debugPolicy: Legalese[DL] = allow
   val debugContext = DemoLabel.bot
 
-  println(Data.rawSensors(0).isInstanceOf[Serializable])
-  println(List(Data.rawSensors(0)).isInstanceOf[Serializable])
-
-  println("### Users ###")
-
-  Data.users.foreach { case (k, v) =>
-    println(s"$k -> $v")
-  }
-
   println("### Location occupancy ###")
-
   aggregate(Data.readings).foreach { case (k, comp) =>
-    val labeled = comp >>= label[DL,BigInt]
-    val temp = labeled.TCBeval(debugContext, debugPolicy)
-    println(s"$k -> $temp")
+    val num = (comp >>= label[DL,BigInt]).TCBeval(debugContext, debugPolicy)
+    println(s"$k -> $num")
   }
 
-  val demoPolicy = deny.except(Seq(
+  println("### Policy over smart building systems ###")
+  val buildingPolicy = deny.except(Seq(
     allow (Origin.Location ⊐ Origin.Location.bot
-      and Purpose ⊑ Purpose.ClimateControl),
+      and Purpose ⊑ Purpose.ClimateControl).except(
+        deny(Origin.Location ⊒ Origin.Location(Data.secretRoom))
+    ),
     allow (Purpose ⊐ Purpose.Legal)
   ))
+  println(buildingPolicy.toString)
 
-  val specExample = allow.except(
-    deny(Origin.Person ⊐ Origin.Person.bot and Purpose ⊒ Purpose.Sharing)
-      .except(Seq(
-        allow(Role ⊒ Role.Affiliate),
-        allow(Purpose ⊒ Purpose.Legal)
-      ))
-  )
+  /* Controller of HVAC systems in building. */
+  object HVAC {
+    val purpose = Purpose.ClimateControl
 
-  println("### Policy ###")
-  println(specExample.toString)
+    def run {
+      println("### Running HVAC status update for each location ###")
+
+      /*
+       Compute the number of users at each location.
+       */
+
+      val isOccupied: Map[DT.Location,LIO[Boolean]] =
+      aggregate(Data.readings).mapValues{lnum =>
+        for {
+          num <- lnum
+        } yield num > 0
+      }
+
+      /*
+       Determine whether the HVAC system should be on in each
+       location. It is turned on if that location has non-zero
+       occupancy. Policy might not allow checking this for all
+       locations.
+       */
+
+      isOccupied.foreach { case (l, locc) =>
+        try {
+          val location_occupied = locc.TCBeval(purpose, buildingPolicy)
+          println(s"  room $l, HVAC ON = $location_occupied")
+        } catch {
+          case e: Core.IFCException =>
+            println(s"  room $l, cannot access occupancy due to policy")
+        }
+      }
+    }
+  }
+
+  HVAC.run
 
   SparkUtil.shutdown
 }

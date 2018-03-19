@@ -7,9 +7,11 @@ import edu.cmu.spf.lio._
 
 import cats.Monad
 
+import java.io.Serializable
+
 package object Aliases {
   type DL = DemoLabel
-  type Ld[T <: Serializable] = Core.Labeled[DL, T]
+  type Ld[T <: Serializable] = Core.Labeled[DL, T with Serializable]
   type LIO[T] = Core.LIO[DL, T]
   type State = Core.State[DL]
   val DT = DemoTypes
@@ -39,7 +41,7 @@ object DemoTypes {
     def max(that: Time): Time = if (this <= that) that else this
   }
 
-  type Id = Long
+  type Id = BigInt
   type Signal = Double
   type Name = String
 
@@ -55,8 +57,9 @@ object DemoTypes {
   case class Role(val name: Name)
       extends Serializable
 
+  @SerialVersionUID(1000L)
   case class Sensor(val sensor_id: Id, val location: Location)
-      extends Serializable
+      extends java.io.Serializable
 
   case class SensorReading(
     val sensor_id: Id,
@@ -65,5 +68,4 @@ object DemoTypes {
     val timestamp: Time
   )
       extends Serializable
-
 }

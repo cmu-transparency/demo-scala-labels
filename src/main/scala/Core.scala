@@ -17,17 +17,24 @@ import cats.mtl.implicits._
 
 import scala.annotation.tailrec
 
+import java.io.Serializable
+
 import org.apache.spark.rdd.RDD
 
 object Core {
   sealed case class State[L <: Label[L]]
     (val pc: L, val policy: Policy[L]) {
 
-    def canLabel(l: L): Boolean =
-        policy(pc ⊔ l) match {
+    def canLabel(l: L): Boolean = {
+      if (l < pc) { return false }
+      else {
+        policy(pc ⊔ l) match { // TODO: might not be necessary here
+                               // but only in TCBeval instead
           case Some(true) => true
           case _ => false
         }
+      }
+    }
 
     override def toString = pc.toString + " under " + policy.toString
   }
@@ -39,6 +46,8 @@ object Core {
     [L <: Label[L], T <: Serializable]
     (label: L, element: T)
       extends Serializable {
+
+    def unlabel: LIO[L, T] = Core.unlabel(this)
 
     override def toString: String =
       element.toString + "[" + label.toString + "]"
@@ -69,8 +78,14 @@ object Core {
     def runLIO(s: State[L]): (T, State[L]) = Core.runLIO(this, s)
     def evalLIO(s: State[L]): T = Core.evalLIO(this, s)
 
-    def TCBeval(context: L, policy: Policy[L]): T =
-      Core.evalLIO(this, new State(context, policy))
+    def TCBeval(context: L, policy: Policy[L]): T = {
+      val (v, s) = runLIO(new State(context, policy))
+      //println("testing policy against " + s)
+      policy(s.pc) match {
+        case Some(true) => v
+        case _ => throw IFCException("cannot release final output")
+      }
+    }
   }
 
   object LIO {
@@ -97,7 +112,6 @@ object Core {
         (b, s3)
       }
     )
-
 
     /* traversals */
     def foldM[L <: Label[L], F[_], A, B]
@@ -212,10 +226,28 @@ object Core {
       else throw IFCException(s.toString + " cannot label " + l.toString)
     )
 
-  def label[L <: Label[L], T <: Serializable](x: T): LIO[L, Labeled[L,T]] =
-    new LIO[L, Labeled[L, T]](
-      s => (Labeled[L, T](s.pc, x), s)
+  def label[L <: Label[L], T <: Serializable](x: T)
+      : LIO[L, Labeled[L,T]] =
+    new LIO[L, Labeled[L, T]](s =>
+      if (s.canLabel(s.pc)) (Labeled[L, T](s.pc, x), s)
+      else throw IFCException(s.toString + " cannot label " + s.pc.toString)
     )
+
+  /*def label[L <: Label[L], T](l: L, x: T)
+      : LIO[L, Labeled[L,T with Serializable]] =
+    new LIO[L, Labeled[L,T with Serializable]](s =>
+      if (s.canLabel(l)) (Labeled[L,T with Serializable](
+        l,
+        x.asInstanceOf[T with Serializable]), s
+      )
+      else throw IFCException(s.toString + " cannot label " + l.toString)
+    )
+
+  def label[L <: Label[L], Any](x: Any): LIO[L, Labeled[L,Serializable]] =
+    new LIO[L, Labeled[L, Serializable]](
+      s => (Labeled[L, Serializable](s.pc, x.asInstanceOf[Serializable]), s)
+    )
+   */
 
   def unlabel[L <: Label[L], T <: Serializable](lt: Labeled[L, T]): LIO[L, T] =
     LIO[L, T](s => {
