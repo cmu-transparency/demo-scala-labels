@@ -194,6 +194,7 @@ object SmartBuilding {
   }
 }
 
+/* Smart building demo. */
 object SmartBuildingDemo extends App {
   import Policy._
   import Legalese._

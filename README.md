@@ -252,9 +252,45 @@ Several convenience implicits enabled a concise syntax for Legalese policies:
 
 ### 
 
-# Reference
+# Contents
 
-## Basic types and aliases as defined  DemoTypes.
+* `build.sbt` - SBT build file. Run `sbt run` to run download
+  dependencies and compile and run the main demo.
+
+* `src/main/scala/...` - scala sources.
+
+* `.../DemoSmartBuilding.scala` - use-case where smart building policy rules
+  over components such as the HVAC system.
+
+* `.../DemoTranslation.scala` - example translation of a simple unlabeled
+  program to one with labels and in monadic style.
+
+* `.../DemoSpec.scala` - example policy that is described in the "A Policy
+  Language for Origin Privacy" document.
+
+* `.../DemoLabels.scala` - defines labels for the main smart building demo.
+
+* `.../DemoPolicies.scala` - utilities and implicits for each definition of
+  the demo's policies.
+
+* `.../DemoTypes.scala` - types and aliases for unlabeled data in the demo.
+
+* `.../Core.scala` - LIO monad and related.
+
+* `.../Label.scala` - Label class and others that extend it.
+
+* `.../Legalese.scala` - Legalese-like policy language.
+
+* `.../Policy.scala` - Base policy class definition.
+
+* `.../StandardLabels.scala` - Some label examples.
+
+* `.../Util.scala` - Utilities, mostly related to starting Spark and
+  reading/writing files.
+
+# Important Types Reference
+
+## Basic types and aliases as defined in DemoTypes.
 
 * `Label` - label that tracks purpose, and three types of origin:
   person, location, time.
@@ -266,10 +302,3 @@ Several convenience implicits enabled a concise syntax for Legalese policies:
 
 * `LIO[L, T]` or alias `LIO[T] = Core.LIO[DL, T]` - a
   label-manipulating computation that returns `T`.
-
-# TODO
-
-* The real wifi-data is not included. Piotr is worried about including
-  it in a demo since the data might be sensitive.
-
-* The upper bound and lower bound tracking at the same time is not tested.

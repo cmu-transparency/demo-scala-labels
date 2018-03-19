@@ -27,7 +27,9 @@ import Aliases._
 import Core.unlabel
 import Core.label
 
-object SpecDemo extends App {
+/* The policy in the "A Policy Language for Origin Privacy"
+ * document. */
+object SpecDemo {
   import Policy._
   import Legalese._
   import DemoPolicy._
