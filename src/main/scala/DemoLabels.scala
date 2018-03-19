@@ -5,7 +5,6 @@ import java.time.Instant
 import scala.collection.immutable.{Set=>SSet}
 
 import edu.cmu.spf.lio._
-import edu.cmu.spf.lio.demo.System._
 
 import Aliases._
 
@@ -89,7 +88,7 @@ object DemoLabel {
   }
 }
 
-object Purpose extends Selector[DL, USet[DT.Purpose]](_._4, "Purpose") {
+object Purpose extends Selector[DemoLabel, USet[DT.Purpose]](_._4, "Purpose") {
   type T = USet[DT.Purpose]
 
   object Nothing extends NoneSet
@@ -106,7 +105,7 @@ object Purpose extends Selector[DL, USet[DT.Purpose]](_._4, "Purpose") {
   def apply(p: DT.Purpose): T = ThisSet(Seq(p).toSet)
 }
 
-object Role extends Selector[DL, USet[DT.Role]](_._5, "Role") {
+object Role extends Selector[DemoLabel, USet[DT.Role]](_._5, "Role") {
   type T = USet[DT.Role]
 
   object Nothing extends NoneSet

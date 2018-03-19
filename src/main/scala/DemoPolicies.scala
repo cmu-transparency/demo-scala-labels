@@ -1,7 +1,6 @@
 package edu.cmu.spf.lio.demo
 
 import edu.cmu.spf.lio._
-import edu.cmu.spf.lio.demo.System._
 
 import Aliases._
 

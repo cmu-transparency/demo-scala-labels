@@ -23,14 +23,11 @@ object Core {
   sealed case class State[L <: Label[L]]
     (val pc: L, val policy: Policy[L]) {
 
-    def canLabel(l: L): Boolean = //true
-      {
-        policy(pc.join(l)) match {
+    def canLabel(l: L): Boolean =
+        policy(pc ⊔ l) match {
           case Some(true) => true
           case _ => false
-            //println(pc.toString + " ≤ " + l.toString + " = " + ret.toString)
         }
-      }
 
     override def toString = pc.toString + " under " + policy.toString
   }
@@ -43,10 +40,9 @@ object Core {
     (label: L, element: T)
       extends Serializable {
 
-    override def toString: String = element.toString + "[" + label.toString + "]"
-
+    override def toString: String =
+      element.toString + "[" + label.toString + "]"
   }
-
 
   private[lio] case class LIO[L <: Label[L], T] (f: State[L] => (T, State[L])) {
 
@@ -208,16 +204,17 @@ object Core {
   }
 
   // AAA: We probably need to handle IFC exceptions differently
+  // PXM: We will not support exceptions or refs in this demo
   def label[L <: Label[L], T <: Serializable](l: L, x: T)
       : LIO[L, Labeled[L,T]] =
-    new LIO(s =>
-      if (s.canLabel(l)) (Labeled(l, x), s)
+    new LIO[L, Labeled[L,T]](s =>
+      if (s.canLabel(l)) (Labeled[L,T](l, x), s)
       else throw IFCException(s.toString + " cannot label " + l.toString)
     )
 
   def label[L <: Label[L], T <: Serializable](x: T): LIO[L, Labeled[L,T]] =
-    new LIO(
-      s => (Labeled(s.pc, x), s)
+    new LIO[L, Labeled[L, T]](
+      s => (Labeled[L, T](s.pc, x), s)
     )
 
   def unlabel[L <: Label[L], T <: Serializable](lt: Labeled[L, T]): LIO[L, T] =
